@@ -1,0 +1,146 @@
+[
+  {
+    "id": "q01_attn_dk",
+    "question": "What dimension is used for queries and keys in the scaled dot-product attention of the Transformer base model?",
+    "paper": "Attention",
+    "answerable": true,
+    "expected_keywords": ["64", "d_k", "dimension"],
+    "ground_truth": "In the base model, d_k = d_v = d_model / h = 512 / 8 = 64."
+  },
+  {
+    "id": "q02_moshi_codec",
+    "question": "What audio codec does Moshi use for tokenizing speech, and at what framerate does it operate?",
+    "paper": "Moshi",
+    "answerable": true,
+    "expected_keywords": ["Mimi", "12.5", "codec", "framerate"],
+    "ground_truth": "Moshi uses the Mimi neural audio codec operating at a 12.5 Hz framerate."
+  },
+  {
+    "id": "q03_dynchunk_boundary",
+    "question": "How does Dynamic Chunking (H-Net) decide when to emit a chunk boundary during sequence processing?",
+    "paper": "DynChunk",
+    "answerable": true,
+    "expected_keywords": ["router", "boundary", "threshold", "dynamic"],
+    "ground_truth": "A router network predicts boundary transition probabilities adaptively based on representation changes."
+  },
+  {
+    "id": "q04_attn_optimizer",
+    "question": "What optimizer and learning rate schedule was used to train the original Transformer models?",
+    "paper": "Attention",
+    "answerable": true,
+    "expected_keywords": ["Adam", "warmup", "4000", "beta"],
+    "ground_truth": "The Adam optimizer with beta1=0.9, beta2=0.98, epsilon=1e-9, with 4000 warmup steps."
+  },
+  {
+    "id": "q05_moshi_latency",
+    "question": "What theoretical and practical latency does Moshi achieve for end-to-end spoken dialogue?",
+    "paper": "Moshi",
+    "answerable": true,
+    "expected_keywords": ["160", "200", "latency", "ms"],
+    "ground_truth": "Moshi achieves a theoretical latency of 160 ms and practical latency of ~200 ms."
+  },
+  {
+    "id": "q06_dynchunk_causality",
+    "question": "How does Dynamic Chunking maintain autoregressive causality across sequence chunks?",
+    "paper": "DynChunk",
+    "answerable": true,
+    "expected_keywords": ["causal", "chunk", "mask", "autoregressive"],
+    "ground_truth": "It enforces causal masking within chunks and propagates summary states strictly without attending forward."
+  },
+  {
+    "id": "q07_attn_scaling",
+    "question": "Why is the dot product scaled by 1/sqrt(d_k) in the Transformer attention mechanism?",
+    "paper": "Attention",
+    "answerable": true,
+    "expected_keywords": ["gradient", "softmax", "scale", "d_k"],
+    "ground_truth": "For large d_k, dot products grow large in magnitude, pushing softmax into regions with vanishingly small gradients."
+  },
+  {
+    "id": "q08_moshi_monologue",
+    "question": "What is the Inner Monologue feature in Moshi and why is it used?",
+    "paper": "Moshi",
+    "answerable": true,
+    "expected_keywords": ["inner monologue", "text", "tokens", "semantic"],
+    "ground_truth": "Moshi predicts internal text tokens before or alongside audio tokens to ground semantics."
+  },
+  {
+    "id": "q09_moshi_cost_unans",
+    "question": "What was the total training cost in US dollars to train the Moshi 7B model on GPU clusters?",
+    "paper": "Moshi",
+    "answerable": false,
+    "expected_keywords": ["do not say", "not stated", "cannot"],
+    "ground_truth": "The paper does not state the US dollar training cost."
+  },
+  {
+    "id": "q10_attn_imagenet_unans",
+    "question": "What top-1 accuracy did the original Attention Is All You Need paper report on the ImageNet benchmark?",
+    "paper": "Attention",
+    "answerable": false,
+    "expected_keywords": ["do not say", "not evaluate", "translation"],
+    "ground_truth": "The paper does not evaluate on ImageNet (it only evaluates machine translation and constituency parsing)."
+  },
+  {
+    "id": "q11_dynchunk_battery_unans",
+    "question": "What is the measured battery life impact of running Dynamic Chunking on mobile edge smartphones?",
+    "paper": "DynChunk",
+    "answerable": false,
+    "expected_keywords": ["do not say", "not measured", "mobile"],
+    "ground_truth": "The paper does not measure or report battery life impact on mobile phones."
+  },
+  {
+    "id": "q12_moshi_therapy_unans",
+    "question": "What prompt template was used to fine-tune Moshi on human psychological therapy dialogues?",
+    "paper": "Moshi",
+    "answerable": false,
+    "expected_keywords": ["do not say", "not fine-tune", "therapy"],
+    "ground_truth": "Moshi was not fine-tuned on psychological therapy sessions."
+  },
+  {
+    "id": "q13_compare_positional",
+    "question": "Compare how the Transformer and Moshi handle positional information in sequence modeling.",
+    "paper": "Cross-paper",
+    "answerable": true,
+    "expected_keywords": ["sinusoidal", "RoPE", "rotary", "positional"],
+    "ground_truth": "Attention uses sinusoidal or learned encodings; Moshi uses Rotary Position Embeddings (RoPE)."
+  },
+  {
+    "id": "q14_compare_complexity",
+    "question": "How do Attention Is All You Need and Dynamic Chunking approach the quadratic complexity of self-attention?",
+    "paper": "Cross-paper",
+    "answerable": true,
+    "expected_keywords": ["quadratic", "chunk", "O(n^2)", "hierarchical"],
+    "ground_truth": "Attention notes O(n^2 * d) complexity; Dynamic Chunking compresses sequences hierarchically into chunks."
+  },
+  {
+    "id": "q15_compare_tokenization",
+    "question": "Compare the tokenization strategies: byte-pair subwords in Transformers vs. acoustic RVQ in Moshi.",
+    "paper": "Cross-paper",
+    "answerable": true,
+    "expected_keywords": ["BPE", "byte-pair", "RVQ", "vector quantization"],
+    "ground_truth": "Transformers use text subword BPE; Moshi uses hierarchical multi-codebook Residual Vector Quantization (RVQ)."
+  },
+  {
+    "id": "q16_distractor_bert",
+    "question": "How does the BERT masked language modeling objective differ from GPT-2 causal language modeling?",
+    "paper": "Off-topic",
+    "answerable": false,
+    "expected_keywords": ["outside", "off-topic", "scope", "papers do not say"],
+    "ground_truth": "Off-topic: Neither BERT nor GPT-2 is covered by the 3 indexed papers."
+  },
+  {
+    "id": "q17_distractor_claude",
+    "question": "What is the maximum context window of Claude 3.5 Sonnet in tokens?",
+    "paper": "Off-topic",
+    "answerable": false,
+    "expected_keywords": ["outside", "off-topic", "scope", "papers do not say"],
+    "ground_truth": "Off-topic: Outside the scope of the 3 indexed papers."
+  },
+  {
+    "id": "q18_distractor_quantum",
+    "question": "Explain quantum entanglement in superconducting qubit circuits.",
+    "paper": "Off-topic",
+    "answerable": false,
+    "expected_keywords": ["outside", "off-topic", "scope", "papers do not say"],
+    "ground_truth": "Off-topic: Unrelated physics subject."
+  }
+]

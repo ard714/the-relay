@@ -66,6 +66,14 @@ class SharedLimiter:
     def is_daily_exhausted(self) -> bool:
         return self.daily_budget_exhausted
 
+    def reset(self) -> None:
+        """Reset sliding window, in-flight counters, cooldowns, and daily flag."""
+        self.semaphore = asyncio.Semaphore(self.max_in_flight)
+        self.sliding_window.clear()
+        self.shared_cooldown_until = 0.0
+        self.daily_budget_exhausted = False
+        self.queue_waiters = 0
+
     def set_daily_exhausted(self, state: bool = True) -> None:
         self.daily_budget_exhausted = state
 

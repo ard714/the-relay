@@ -77,3 +77,14 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
   - Rate limits set to 30 RPM, 8,000 TPM, and 429 payload matching Groq's exact schema with `retry-after: 2`.
 * **Why:** Guarantees that the stand-in simulator accurately mirrors the physical timing characteristics, tail risks, and error semantics of Groq's `openai/gpt-oss-20b` endpoint without guessing parameters.
 * **What it costs:** The local mock captures smooth stochastic distributions and step-function multipliers, but lacks the public internet network jitter (TLS/routing) and fine-grained hardware LPU micro-bursting dynamics of the real service.
+
+---
+
+### 2026-11-14: Workload Runner & Scenario Driving (`load_runner.py`)
+* **Decision:** Implemented `load_runner.py` configured via `scenarios.yaml` to run the 5 specified traffic scenarios (`steady`, `burst`, `sustained_overload`, `rpm_halved`, `daily_budget_exhausted`).
+  - Implemented Poisson arrival scheduling ($\Delta t \sim \text{Exp}(\lambda)$) for steady and overload conditions.
+  - Enforced strict user patience limits ($T_{\text{patience}}$); requests exceeding patience terminate with `status="timeout"`.
+  - Added strict safety gates for `--real` runs: requires an explicit `--cap <= 30` flag to strictly prevent accidental provider quota exhaustion.
+  - Formatted output rows strictly matching the brief's required 12 CSV columns in `results.csv`, paired with detailed step execution traces in `traces.jsonl` and full answers in `answers.jsonl`.
+* **Why:** Standardizes benchmarking across varying traffic profiles and guarantees complete, reproducible data collection for Table 2a and Table 2b.
+* **What it costs:** High concurrency runs against the stand-in trigger local CPU context switching and rate-limit shedding as designed.

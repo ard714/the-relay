@@ -1,0 +1,52 @@
+# scenarios.yaml - Workload scenario definitions for load_runner.py
+# You can edit arrival rates, durations, burst sizes, and user patience limits here.
+
+defaults:
+  standin_url: "http://127.0.0.1:8000"
+  user_patience_sec: 10.0
+  retrieval_setting: "B"
+
+scenarios:
+  steady:
+    description: "Steady arrival traffic well below provider 30 RPM limit"
+    arrival_mode: "poisson"
+    arrival_rate_rpm: 15.0         # 15 requests per minute (mean inter-arrival = 4.0s)
+    duration_sec: 60.0             # Run for 60 seconds
+    user_patience_sec: 10.0        # User gives up after 10.0s (status=timeout)
+    retrieval_setting: "B"
+
+  burst:
+    description: "Sudden spike of 20 concurrent requests arriving at once"
+    arrival_mode: "burst"
+    burst_size: 20                 # 20 requests dispatched simultaneously
+    duration_sec: 0.0              # Single burst event
+    user_patience_sec: 8.0         # User gives up after 8.0s
+    retrieval_setting: "B"
+
+  sustained_overload:
+    description: "Sustained traffic at 60 RPM (2x provider limit) for 60 seconds"
+    arrival_mode: "poisson"
+    arrival_rate_rpm: 60.0         # 60 requests per minute (1 req/sec)
+    duration_sec: 60.0             # Run for 60 seconds (~60 requests)
+    user_patience_sec: 6.0         # User gives up after 6.0s under pressure
+    retrieval_setting: "B"
+
+  rpm_halved:
+    description: "Provider halves RPM limit from 30 to 15 while steady traffic arrives"
+    arrival_mode: "poisson"
+    arrival_rate_rpm: 15.0         # Steady 15 RPM
+    duration_sec: 60.0             # Run for 60 seconds
+    user_patience_sec: 8.0
+    retrieval_setting: "B"
+    standin_admin:
+      rpm_limit: 15                # Live update stand-in RPM limit to 15 via POST /admin/config
+
+  daily_budget_exhausted:
+    description: "Simulate 3pm daily API budget exhaustion"
+    arrival_mode: "poisson"
+    arrival_rate_rpm: 15.0
+    duration_sec: 15.0             # Short 15s window (~4-5 requests)
+    user_patience_sec: 6.0
+    retrieval_setting: "B"
+    standin_admin:
+      exhaust_day: true            # Trigger daily exhaustion via POST /admin/exhaust_day

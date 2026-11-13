@@ -45,11 +45,17 @@ class GroqClient:
         self,
         api_key: Optional[str] = None,
         model: str = GROQ_MODEL,
-        log_path: Path = RAW_LOG_PATH,
+        log_path: Optional[Path] = None,
+        base_url: Optional[str] = None,
     ):
-        self.api_key = api_key or get_api_key()
+        self.base_url = base_url or GROQ_API_URL
+        if base_url and not api_key:
+            self.api_key = os.environ.get("GROQ_API_KEY", "mock-standin-key")
+        else:
+            self.api_key = api_key or get_api_key()
         self.model = model
-        self.log_path = log_path
+        default_log = Path("data/raw_standin.jsonl") if base_url else RAW_LOG_PATH
+        self.log_path = log_path or default_log
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
         self._client: Optional[httpx.AsyncClient] = None
 
@@ -118,7 +124,7 @@ class GroqClient:
         try:
             async with client.stream(
                 "POST",
-                GROQ_API_URL,
+                self.base_url,
                 headers=headers,
                 json=payload,
                 timeout=call_timeout,
