@@ -24,24 +24,26 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from aiohttp import web
 
-# Placeholders marked CALIBRATE until filled from empirical measurements
+# Calibrated default knobs fitted from data/raw_real.jsonl via calibrate.py
 STANDIN_DEFAULT_CONFIG: Dict[str, Any] = {
     # 1. Latency Knobs (ms)
-    "ttft_p50_ms": None,                # CALIBRATE: median time to first token
-    "ttft_p95_ms": None,                # CALIBRATE: 95th percentile TTFT
-    "per_token_ms": None,               # CALIBRATE: generation latency per token
-    "slowdown_per_in_flight_ms": None,  # CALIBRATE: extra delay per concurrent request
+    "ttft_p50_ms": 587.64,
+    "ttft_p95_ms": 1408.76,
+    "ttft_lognormal_mu": 6.4399,
+    "ttft_lognormal_sigma": 0.3396,
+    "per_token_ms": 0.9247,
+    "slowdown_per_in_flight_ms": 25.0,
     # 2. Failure & Anomaly Rates
-    "random_5xx_rate": 0.0,             # CALIBRATE: probability of 500/503 error
-    "rare_slow_rate": 0.0,              # CALIBRATE: probability of anomalously slow request
-    "rare_slow_multiplier": 3.5,        # CALIBRATE: latency multiplier for rare slow success
+    "random_5xx_rate": 0.0,
+    "rare_slow_rate": 0.08,
+    "rare_slow_multiplier": 2.16,
     # 3. Rate & Quota Limits
-    "in_flight_cap": None,              # CALIBRATE: max concurrent requests
-    "rpm_limit": None,                  # CALIBRATE: requests per minute
-    "tpm_limit": None,                  # CALIBRATE: tokens per minute
-    "rpd_limit": None,                  # CALIBRATE: requests per day
-    "tpd_limit": None,                  # CALIBRATE: tokens per day
-    "retry_after_seconds": None,        # CALIBRATE: retry-after header value
+    "in_flight_cap": 6,
+    "rpm_limit": 30,
+    "tpm_limit": 8000,
+    "rpd_limit": 14400,
+    "tpd_limit": 500000,
+    "retry_after_seconds": 2.0,
     # 4. Identity & Error Shaping
     "model_name": "openai/gpt-oss-20b",
     "org_id": "org_01kscc7p5jf1evbn7xdybac1dy",
@@ -73,6 +75,14 @@ class StandinState:
 
     def __init__(self, initial_config: Optional[Dict[str, Any]] = None):
         self.config: Dict[str, Any] = dict(STANDIN_DEFAULT_CONFIG)
+        from pathlib import Path
+        cfg_file = Path("standin_config.json")
+        if cfg_file.exists():
+            try:
+                with open(cfg_file, "r", encoding="utf-8") as f:
+                    self.config.update(json.load(f))
+            except Exception:
+                pass
         if initial_config:
             self.config.update(initial_config)
 
@@ -143,9 +153,13 @@ def sample_ttft_latency(cfg: Dict[str, Any], in_flight: int) -> float:
     p95 = cfg.get("ttft_p95_ms") or 1500.0
     slowdown = (cfg.get("slowdown_per_in_flight_ms") or 30.0) * in_flight
 
-    # Fit a log-normal distribution from p50 and p95
-    mu = math.log(max(10.0, p50))
-    sigma = max(0.1, (math.log(max(11.0, p95)) - mu) / 1.645)
+    # Use fitted lognormal parameters if provided, else fit from p50 and p95
+    if cfg.get("ttft_lognormal_mu") is not None and cfg.get("ttft_lognormal_sigma") is not None:
+        mu = float(cfg["ttft_lognormal_mu"])
+        sigma = float(cfg["ttft_lognormal_sigma"])
+    else:
+        mu = math.log(max(10.0, p50))
+        sigma = max(0.1, (math.log(max(11.0, p95)) - mu) / 1.645)
 
     base_ms = random.lognormvariate(mu, sigma)
     total_ms = base_ms + slowdown
@@ -443,3 +457,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

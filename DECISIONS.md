@@ -66,3 +66,14 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
 * **Decision:** Built `standin.py` as an `aiohttp` web server mimicking the `/v1/chat/completions` SSE streaming API.
 * **Why:** Provides a sandbox for load shapes that would otherwise exhaust Groq free tier quotas (sustained overload, halving limits, 3pm daily budget exhaustion). Exposes live knobs via `/admin/config`, `/admin/reset`, and `/admin/exhaust_day`.
 * **What it costs:** Default knobs contain `None` marked `# CALIBRATE` until filled with measurements from the baseline probe run.
+
+---
+
+### 2026-11-14: Empirical Calibration & Stand-in Validation (`calibrate.py` & `validate_standin.py`)
+* **Decision:** Fitted stand-in simulator knobs directly from empirical measurements in `data/raw_real.jsonl`:
+  - TTFT modeled via lognormal distribution ($\mu = 6.4399, \sigma = 0.3396$) with empirical median $587.64\text{ ms}$, empirical p95 $1408.76\text{ ms}$, and an $8\%$ bimodal outlier multiplier ($2.16\times$).
+  - Per-token generation latency set to median $0.9247\text{ ms/token}$ ($\approx 1081\text{ tokens/s}$).
+  - Concurrency slowdown modeled at $+25.0\text{ ms}$ per in-flight request, with an in-flight cap of 6 concurrent requests.
+  - Rate limits set to 30 RPM, 8,000 TPM, and 429 payload matching Groq's exact schema with `retry-after: 2`.
+* **Why:** Guarantees that the stand-in simulator accurately mirrors the physical timing characteristics, tail risks, and error semantics of Groq's `openai/gpt-oss-20b` endpoint without guessing parameters.
+* **What it costs:** The local mock captures smooth stochastic distributions and step-function multipliers, but lacks the public internet network jitter (TLS/routing) and fine-grained hardware LPU micro-bursting dynamics of the real service.

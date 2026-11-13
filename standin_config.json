@@ -1,0 +1,19 @@
+{
+  "ttft_p50_ms": 587.64,
+  "ttft_p95_ms": 1408.76,
+  "ttft_lognormal_mu": 6.4399,
+  "ttft_lognormal_sigma": 0.3396,
+  "per_token_ms": 0.9247,
+  "slowdown_per_in_flight_ms": 25.0,
+  "random_5xx_rate": 0.0,
+  "rare_slow_rate": 0.08,
+  "rare_slow_multiplier": 2.16,
+  "in_flight_cap": 6,
+  "rpm_limit": 30,
+  "tpm_limit": 8000,
+  "rpd_limit": 14400,
+  "tpd_limit": 500000,
+  "retry_after_seconds": 2.0,
+  "model_name": "openai/gpt-oss-20b",
+  "org_id": "org_01kscc7p5jf1evbn7xdybac1dy"
+}
