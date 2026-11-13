@@ -17,6 +17,7 @@ from collections import deque
 import json
 import math
 import random
+import re
 import sys
 import time
 import uuid
@@ -286,15 +287,42 @@ async def handle_chat_completions(request: web.Request) -> web.Response:
             )
 
         # 5. Determine Response Text
+        system_text = "".join(m.get("content", "") for m in messages if m.get("role") == "system")
         user_text = "".join(m.get("content", "") for m in messages if m.get("role") == "user")
-        if "moshi" in user_text.lower():
-            response_text = CANNED_RESPONSES[0]
-        elif "attention" in user_text.lower() or "dot" in user_text.lower():
-            response_text = CANNED_RESPONSES[1]
-        elif "chunk" in user_text.lower():
-            response_text = CANNED_RESPONSES[2]
+
+        # Step 1: Query Analyzer / Understand
+        if "query analyzer" in system_text.lower() or "is_off_topic" in system_text.lower():
+            is_off = any(w in user_text.lower() for w in ["bert", "claude", "quantum", "gpt-2", "therapy"])
+            q_clean = user_text.strip()
+            response_text = json.dumps({"is_off_topic": is_off, "search_query": q_clean})
+        # Step 5B: Verification Audit
+        elif "scientific reviewer" in system_text.lower() or "faithfully supported" in system_text.lower():
+            response_text = "VERIFIED"
+        # Step 4: Draft Generation with Grounded Citations
+        elif "excerpts:" in user_text.lower():
+            full_cites = re.findall(r"\[(?:Attention|Moshi|DynChunk)[^\]]+\]", user_text)
+            q_match = re.search(r"QUESTION:\s*([^\n]+)", user_text)
+            q_line = q_match.group(1).lower() if q_match else user_text.lower()
+            if not full_cites or any(w in q_line for w in ["cost", "battery", "imagenet", "therapy"]):
+                response_text = "The papers do not say."
+            else:
+                c1 = full_cites[0]
+                c2 = full_cites[1] if len(full_cites) > 1 else c1
+                if "moshi" in q_line:
+                    response_text = f"Moshi models real-time spoken dialogue using the Mimi codec operating at 12.5 Hz {c1}, predicting acoustic and text tokens duplexly {c2}."
+                elif "chunk" in q_line:
+                    response_text = f"Dynamic Chunking (H-Net) uses router decision boundaries to segment sequences adaptively into variable-length chunks {c1} while maintaining strict autoregressive causality {c2}."
+                else:
+                    response_text = f"Scaled dot-product attention scales inner products by 1/sqrt(d_k) to prevent vanishing softmax gradients with d_k=64 {c1}, while multi-head attention projects across representation subspaces {c2}."
         else:
-            response_text = random.choice(CANNED_RESPONSES)
+            if "moshi" in user_text.lower():
+                response_text = CANNED_RESPONSES[0]
+            elif "attention" in user_text.lower() or "dot" in user_text.lower():
+                response_text = CANNED_RESPONSES[1]
+            elif "chunk" in user_text.lower():
+                response_text = CANNED_RESPONSES[2]
+            else:
+                response_text = CANNED_RESPONSES[1]
 
         # 6. Simulate Latency
         ttft_delay = sample_ttft_latency(cfg, state.in_flight_count)
@@ -348,36 +376,39 @@ async def handle_chat_completions(request: web.Request) -> web.Response:
 
         # Stream words/tokens piece by piece
         tokens = response_text.split(" ")
-        for i, word in enumerate(tokens):
-            chunk_content = word if i == 0 else f" {word}"
-            chunk = {
+        try:
+            for i, word in enumerate(tokens):
+                chunk_content = word if i == 0 else f" {word}"
+                chunk = {
+                    "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
+                    "object": "chat.completion.chunk",
+                    "created": int(now_wall),
+                    "model": model,
+                    "choices": [{"index": 0, "delta": {"content": chunk_content}, "finish_reason": None}],
+                }
+                await response.write(f"data: {json.dumps(chunk)}\n\n".encode("utf-8"))
+                if per_token_delay > 0:
+                    await asyncio.sleep(per_token_delay)
+
+            # Stream usage & [DONE]
+            usage_chunk = {
                 "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
                 "object": "chat.completion.chunk",
                 "created": int(now_wall),
                 "model": model,
-                "choices": [{"index": 0, "delta": {"content": chunk_content}, "finish_reason": None}],
+                "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
+                "usage": {
+                    "prompt_tokens": len(user_text.split()),
+                    "completion_tokens": len(tokens),
+                    "total_tokens": len(user_text.split()) + len(tokens),
+                },
             }
-            await response.write(f"data: {json.dumps(chunk)}\n\n".encode("utf-8"))
-            if per_token_delay > 0:
-                await asyncio.sleep(per_token_delay)
-
-        # Stream usage & [DONE]
-        usage_chunk = {
-            "id": f"chatcmpl-{uuid.uuid4().hex[:12]}",
-            "object": "chat.completion.chunk",
-            "created": int(now_wall),
-            "model": model,
-            "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
-            "usage": {
-                "prompt_tokens": len(user_text.split()),
-                "completion_tokens": len(tokens),
-                "total_tokens": len(user_text.split()) + len(tokens),
-            },
-        }
-        await response.write(f"data: {json.dumps(usage_chunk)}\n\n".encode("utf-8"))
-        await response.write(b"data: [DONE]\n\n")
-
-        state.total_served += 1
+            await response.write(f"data: {json.dumps(usage_chunk)}\n\n".encode("utf-8"))
+            await response.write(b"data: [DONE]\n\n")
+            state.total_served += 1
+        except (ConnectionResetError, Exception):
+            # Client disconnected early (e.g. deadline expired, patience timeout)
+            pass
         return response
 
     finally:

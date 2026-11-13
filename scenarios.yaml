@@ -8,11 +8,11 @@ defaults:
 
 scenarios:
   steady:
-    description: "Steady arrival traffic well below provider 30 RPM limit"
+    description: "Steady arrival traffic below provider limit (8 user RPM = 24 model calls/min <= 30 RPM limit)"
     arrival_mode: "poisson"
-    arrival_rate_rpm: 15.0         # 15 requests per minute (mean inter-arrival = 4.0s)
-    duration_sec: 60.0             # Run for 60 seconds
-    user_patience_sec: 10.0        # User gives up after 10.0s (status=timeout)
+    arrival_rate_rpm: 8.0          # 8 requests per minute (mean inter-arrival = 7.5s)
+    duration_sec: 45.0             # Run for 45 seconds (~6-8 requests)
+    user_patience_sec: 12.0        # User gives up after 12.0s
     retrieval_setting: "B"
 
   burst:
@@ -24,18 +24,18 @@ scenarios:
     retrieval_setting: "B"
 
   sustained_overload:
-    description: "Sustained traffic at 60 RPM (2x provider limit) for 60 seconds"
+    description: "Sustained traffic at 30 user RPM (90 model calls/min = 3x provider limit) for 45 seconds"
     arrival_mode: "poisson"
-    arrival_rate_rpm: 60.0         # 60 requests per minute (1 req/sec)
-    duration_sec: 60.0             # Run for 60 seconds (~60 requests)
+    arrival_rate_rpm: 30.0         # 30 user RPM (0.5 req/sec, 3x limit)
+    duration_sec: 45.0             # Run for 45 seconds (~22-25 requests)
     user_patience_sec: 6.0         # User gives up after 6.0s under pressure
     retrieval_setting: "B"
 
   rpm_halved:
-    description: "Provider halves RPM limit from 30 to 15 while steady traffic arrives"
+    description: "Provider halves RPM limit from 30 to 15 while 8 user RPM (24 model calls/min) arrives"
     arrival_mode: "poisson"
-    arrival_rate_rpm: 15.0         # Steady 15 RPM
-    duration_sec: 60.0             # Run for 60 seconds
+    arrival_rate_rpm: 8.0          # Steady 8 user RPM (24 model calls/min > 15 limit)
+    duration_sec: 45.0             # Run for 45 seconds
     user_patience_sec: 8.0
     retrieval_setting: "B"
     standin_admin:
@@ -44,9 +44,10 @@ scenarios:
   daily_budget_exhausted:
     description: "Simulate 3pm daily API budget exhaustion"
     arrival_mode: "poisson"
-    arrival_rate_rpm: 15.0
-    duration_sec: 15.0             # Short 15s window (~4-5 requests)
+    arrival_rate_rpm: 10.0
+    duration_sec: 15.0             # Short 15s window (~3-4 requests)
     user_patience_sec: 6.0
     retrieval_setting: "B"
     standin_admin:
       exhaust_day: true            # Trigger daily exhaustion via POST /admin/exhaust_day
+
