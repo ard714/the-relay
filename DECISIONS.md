@@ -12,7 +12,7 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
 ---
 
 ### 2026-11-14: Stand-in Architecture
-* **Decision:** Implement the stand-in model service as a standalone local HTTP server (FastAPI/Uvicorn) with an async simulator core.
+* **Decision:** Implement the stand-in model service as a standalone local HTTP server (`aiohttp`) with an async simulator core.
 * **Why:** Enforces true protocol and transport parity with Groq over `httpx`, subjecting the client pipeline to real socket connection pooling, HTTP headers, chunked SSE streaming, and network timeouts.
 * **What it costs:** Requires managing a local background server process and local port binding during testing rather than an in-memory mock.
 
@@ -59,3 +59,10 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
   - Step-isolated retries prevent redundant re-execution of earlier steps (understand, retrieve).
   - Multi-stage degradation (skipping query rewrite, reducing chunk count, skipping LLM verify) keeps throughput high during traffic bursts.
 * **What it costs:** Degraded stages slightly reduce prompt refinement or evidence breadth during peak load to protect system availability.
+
+---
+
+### 2026-11-14: Controllable Stand-in Model Service
+* **Decision:** Built `standin.py` as an `aiohttp` web server mimicking the `/v1/chat/completions` SSE streaming API.
+* **Why:** Provides a sandbox for load shapes that would otherwise exhaust Groq free tier quotas (sustained overload, halving limits, 3pm daily budget exhaustion). Exposes live knobs via `/admin/config`, `/admin/reset`, and `/admin/exhaust_day`.
+* **What it costs:** Default knobs contain `None` marked `# CALIBRATE` until filled with measurements from the baseline probe run.
