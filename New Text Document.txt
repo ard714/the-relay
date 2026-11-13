@@ -1,0 +1,69 @@
+Vaani builds voice AI used in real conversations, where reliability and speed are immediately noticeable. We’re a startup looking for interns who love learning, think independently, and want to work where research meets production: how models run and are served, the agentic systems built on top of them, and the experiments that decide what we build next. We care about what you can do and how fast you learn, not your years of experience.
+
+What you’ll do
+
+
+Build and improve agentic pipelines: orchestration, tool calling and multi-agent workflows
+
+Work on inference and model serving, and cut latency, raise throughput and use resources well
+
+Run experiments with LLMs and small language models, and measure what actually works
+
+Contribute to our research team’s work: design and run evaluations, test new ideas against real production constraints, and help turn promising results into write-ups and shipped improvements
+
+Take what works into production and see how it behaves with real users
+
+What we’re looking for
+
+
+Strong Python programming
+
+Good ML/AI fundamentals
+
+Real interest in LLMs, inference engines, model serving and agentic systems
+
+C++ or Go is a big plus
+
+Someone who enjoys debugging, experimenting and building things from scratch
+
+Open-source work or personal AI/ML projects you can explain (a plus, not a requirement)
+
+Good judgement when working with AI coding tools
+
+
+
+
+
+
+
+How it works
+
+
+Apply with the form. Use an email address you check often.
+
+You get the assignment by email within a few minutes. It comes from "Hiring Team" with a PDF attached. Check your spam folder if it isn't in your inbox. The deadline is in the email: 4 days from the moment it is sent, so apply when you can set aside the time.
+
+Work alone. You can use any AI tool. We want to see how you direct it and what in the submission is yours.
+
+Submit with the submission form linked in that email.
+
+Share one Drive folder containing your write-up, your code and results.csv.
+
+Share the folder so anyone with the link can view it.
+
+Use the same email address you applied with. We match your submission to your application by email.
+
+
+
+You get a confirmation email when your submission is received. Submissions after the deadline are marked late.
+
+Next steps. Shortlisted candidates get a live conversation where you explain and change your system. After that comes a team chat.
+
+Three notes on the automation:
+
+
+Folder sharing. The script can only read a folder that is shared. "Anyone with the link" is the safest setting. Without it, the submission fails with a "No Drive link found" or unreadable-file message.
+
+Matching by email. The email on the submission form must match the application form. A typo gives "No applicant with this email" on the sheet.
+
+File name. The file must be named exactly results.csv. The assignment email now highlights that name too.
