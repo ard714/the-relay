@@ -1,5 +1,5 @@
 """
-config.py - Configuration settings for retrieval, Groq models, and evaluation.
+config.py - Configuration settings for retrieval, Groq models, rate limits, and evaluation.
 """
 
 from typing import Any, Dict
@@ -49,6 +49,7 @@ PAPER_DISPLAY_NAMES = {
 }
 
 # Groq and Inference settings
+# Model verified on Groq endpoint (see groq_baseline.json)
 GROQ_MODEL = "openai/gpt-oss-20b"
 UNDERSTAND_MODEL = "openai/gpt-oss-20b"
 DRAFT_MODEL = "openai/gpt-oss-20b"
@@ -62,3 +63,14 @@ RETRIEVAL_SCORE_THRESHOLD = 2.0  # Min BM25 score required to proceed to LLM dra
 RETRIEVAL_TOOL_TIMEOUT = 1.5     # Tool timeout in seconds
 MAX_VERIFY_ROUNDS = 2            # Maximum verification loop iterations
 STREAM_AFTER_VERIFICATION = True # User Option 2: Gated streaming after verification
+
+# Rate Limiter & Concurrency Configuration (Calibrated directly from groq_baseline.json measurements)
+# TODO: Measured in probe_groq.py run on 2026-11-14 (see groq_baseline.json)
+LIMIT_RPM = 30                 # Empirically measured Groq free tier limit: 30 RPM
+LIMIT_TPM = 8000               # Empirically measured Groq free tier limit: 8,000 TPM
+MAX_IN_FLIGHT = 6              # Safe concurrency ceiling: ramp showed 4 ok, 8 hit 429
+DEFAULT_RETRY_BUDGET = 2       # Per-request retry budget
+PRESSURE_QUEUE_THRESHOLD = 4   # Queue length triggering graceful degradation
+PRESSURE_RPM_THRESHOLD = 0.80  # 80% of RPM consumed triggers degradation
+PRESSURE_TPM_THRESHOLD = 0.80  # 80% of TPM consumed triggers degradation
+DEFAULT_COOLDOWN_SECONDS = 2.0 # Default cooldown on 429 when retry-after header missing

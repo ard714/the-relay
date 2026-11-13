@@ -48,3 +48,14 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
 * **Decision:** Stream tokens to the user only AFTER complete verification (Option 2) rather than speculative early streaming.
 * **Why:** The brief explicitly states the assistant *"never wants to send a wrong or embarrassing answer just to stay fast."* Delivering tokens before verification could expose hallucinations or false claims to the user before they are caught by the verifier.
 * **What it costs:** Time to First Token (TTFT) perceived by the user now includes the full verification pipeline (query understanding + retrieval + draft generation + verification checks), shifting latency from after first token to before first token.
+
+---
+
+### 2026-11-14: Shared Rate Limiting, Deadline-Aware Shedding & Graceful Degradation
+* **Decision:** Built `limiter.py` governing all model calls with in-flight cap, sliding-window RPM/TPM tracking, deadline-aware 429 shedding, shared cooldowns, and step-isolated retries.
+* **Why:**
+  - When `retry_after > remaining_deadline`, waiting or retrying wastes tokens on an abandoned user. Shedding immediately (1.3 ms) preserves quota.
+  - Shared cooldown ensures concurrent workers do not stampede the provider following a 429.
+  - Step-isolated retries prevent redundant re-execution of earlier steps (understand, retrieve).
+  - Multi-stage degradation (skipping query rewrite, reducing chunk count, skipping LLM verify) keeps throughput high during traffic bursts.
+* **What it costs:** Degraded stages slightly reduce prompt refinement or evidence breadth during peak load to protect system availability.

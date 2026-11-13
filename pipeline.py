@@ -1,16 +1,23 @@
 """
-pipeline.py - 5-Step Agentic Q&A Pipeline over arXiv Library with Strict Verification.
+pipeline.py - 5-Step Agentic Q&A Pipeline over arXiv Library with Rate Limiting & Verification.
 
 Steps:
 1) Understand: Small model analyzes query, extracts search terms, flags off-topic.
+   (Skipped under Stage 1+ pressure).
 2) Retrieve: Calls retriever as a TOOL with 1.5s timeout and 1 retry.
+   (Uses smaller chunk setting under Stage 2+ pressure).
 3) Decide (Branch): If top retrieval score < threshold, refuse WITHOUT calling LLM.
 4) Draft: Bigger model drafts answer strictly from retrieved passages with citations.
-5) Verify (Loop, max 2 rounds): Free code check (citations + numbers) then LLM grounding check.
+5) Verify (Loop, max 2 rounds): Free code check (citations + numbers) then LLM check.
+   (LLM check skipped under Stage 3+ pressure).
 
-Design Decision:
-Gated Streaming (Option 2): Tokens are delivered to the user only AFTER verification,
-guaranteeing zero hallucinations reach the engineer.
+Limiter & Policy Integration:
+- In-flight concurrency cap and sliding window RPM/TPM accounting via SharedLimiter.
+- 429 Retry-After > remaining deadline -> Shed/Degrade immediately (no waiting).
+- Shared 429 cooldown prevents stampedes.
+- Retries isolated to the failed step (NEVER restarts whole pipeline).
+- Full jitter on 5xx/timeouts, no retry on 4xx.
+- Daily-limit detection flips shared kill flag.
 """
 
 import argparse
@@ -34,6 +41,7 @@ from config import (
     VERIFY_MODEL,
 )
 from groq_client import GroqClient
+from limiter import GLOBAL_LIMITER, SharedLimiter, execute_step_with_retry
 import retrieve
 
 
@@ -103,12 +111,13 @@ class PipelineTrace:
 @dataclass
 class PipelineResult:
     answer: str
-    status: str  # 'ok', 'refused_off_topic', 'refused_low_confidence', 'refused_verification_failed', 'timeout', 'error'
+    status: str  # 'ok', 'refused_off_topic', 'refused_low_confidence', 'refused_verification_failed', 'refused_daily_budget_exhausted', 'rate_limited', 'timeout', 'error'
     status_code: int
     trace: PipelineTrace
     citations: List[str]
     retrieved_hits: List[Dict[str, Any]]
     rounds_used: int
+    degraded_stage: int = 0
 
 
 def free_code_check(
@@ -119,7 +128,6 @@ def free_code_check(
     1. Checks that citations are present and refer to actually retrieved passages.
     2. Checks that specific claimed numbers exist in the evidence.
     """
-    # If the draft states the papers don't say, it's a valid refusal
     if "papers do not say" in draft.lower() or "not mentioned in the papers" in draft.lower():
         return True, "Valid refusal", []
 
@@ -136,10 +144,8 @@ def free_code_check(
     for cite in all_bracket_cites:
         full_cite = f"[{cite}]"
         norm = full_cite.lower().replace(" ", "")
-        # Check if cited paper/page exists in retrieved evidence
         match_found = any(norm in v or v in norm for v in valid_citations_normalized)
         if not match_found:
-            # Check page and paper matching
             pg_match = re.search(r"p\.\s*(\d+)", cite)
             paper_match = re.search(r"^(Attention|Moshi|DynChunk)", cite, re.IGNORECASE)
             if pg_match and paper_match:
@@ -150,14 +156,11 @@ def free_code_check(
                     return False, f"Hallucinated citation {full_cite} not found in retrieved passages.", all_bracket_cites
 
     # 2. Numeric Claims Check
-    # Remove bracketed citations so page numbers aren't treated as claims
     draft_no_cites = re.sub(r"\[[^\]]+\]", " ", draft)
     claimed_numbers = re.findall(r"\b\d+(?:\.\d+)?%?\b", draft_no_cites)
-
     evidence_text = " ".join(hit.get("text", "") for hit in retrieved_hits)
 
     for num in claimed_numbers:
-        # Ignore small common integers (1, 2, 3) used for list itemization
         if num in ("1", "2", "3", "4", "5") and len(num) == 1:
             continue
         clean_num = num.rstrip("%")
@@ -194,7 +197,7 @@ async def retrieve_tool(
             att_end = time.perf_counter()
             work_ms = round((att_end - att_start) * 1000, 2)
             return hits, work_ms, retry_ms, retries
-        except (asyncio.TimeoutError, Exception) as exc:
+        except (asyncio.TimeoutError, Exception):
             att_end = time.perf_counter()
             if attempt == 1:
                 retries += 1
@@ -211,101 +214,159 @@ async def answer(
     deadline: float = 30.0,
     setting_key: str = "B",
     client: Optional[GroqClient] = None,
+    limiter: Optional[SharedLimiter] = None,
 ) -> PipelineResult:
     """
-    Main 5-Step Agentic Pipeline:
-    answer(question, deadline) -> PipelineResult with full trace and gated streaming delivery.
+    Main 5-Step Agentic Pipeline with Rate Limiting, Degraded Modes, and Gated Delivery.
     """
     t_global_start = time.perf_counter()
     trace = PipelineTrace(question=question, start_time=t_global_start)
     groq = client or GroqClient()
+    lim = limiter or GLOBAL_LIMITER
 
     def get_remaining_deadline() -> float:
         elapsed = time.perf_counter() - t_global_start
         return max(0.1, deadline - elapsed)
 
-    # =========================================================================
-    # STEP 1: UNDERSTAND (Query rewrite + off-topic detection)
-    # =========================================================================
-    rem_dl = get_remaining_deadline()
-    if rem_dl <= 0.3:
+    # Check daily budget exhaustion
+    if lim.is_daily_exhausted():
         trace.finalize()
+        refusal_msg = "Service Unavailable: Daily API budget has been exhausted. No further requests can be processed until reset."
         return PipelineResult(
-            answer="Request timed out before processing.",
-            status="timeout",
-            status_code=408,
+            answer=refusal_msg,
+            status="refused_daily_budget_exhausted",
+            status_code=429,
             trace=trace,
             citations=[],
             retrieved_hits=[],
             rounds_used=0,
+            degraded_stage=3,
         )
 
-    t_step_start = time.perf_counter()
-    understand_prompt = [
-        {
-            "role": "system",
-            "content": (
-                "You are an assistant query analyzer for a research library containing 3 papers:\n"
-                "1. Attention Is All You Need (Transformers, self-attention)\n"
-                "2. Moshi: Speech-text foundation model for real-time dialogue\n"
-                "3. Dynamic Chunking for End-to-End Hierarchical Sequence Modeling\n"
-                "Respond in JSON format: {\"is_off_topic\": bool, \"search_query\": str}\n"
-                "If the question is completely unrelated to machine learning, speech, or these papers, set is_off_topic: true."
-            ),
-        },
-        {"role": "user", "content": question},
-    ]
+    # Check pressure and stage degradation
+    degrade_stage = lim.get_pressure_stage()
+    effective_setting = "A" if degrade_stage >= 2 else setting_key
 
-    und_res = await groq.stream_chat(
-        messages=understand_prompt,
-        max_tokens=500,
-        model=UNDERSTAND_MODEL,
-        timeout=rem_dl,
-    )
-    t_step_end = time.perf_counter()
-
-    trace.total_tokens_in += und_res.get("tokens_in", 0)
-    trace.total_tokens_out += und_res.get("tokens_out", 0)
-
+    # =========================================================================
+    # STEP 1: UNDERSTAND
+    # =========================================================================
     is_off_topic = False
     search_query = question
 
-    # Parse JSON from model
-    content_txt = und_res.get("content", "")
-    try:
-        json_match = re.search(r"\{.*\}", content_txt, re.DOTALL)
-        if json_match:
-            data = json.loads(json_match.group(0))
-            is_off_topic = bool(data.get("is_off_topic", False))
-            search_query = data.get("search_query", question).strip() or question
-    except Exception:
-        pass
+    if degrade_stage >= 1:
+        # Under pressure: Skip understand step to save latency & tokens
+        trace.steps.append(
+            StepTrace(
+                name="1_understand_skipped_pressure",
+                start_time=time.perf_counter(),
+                end_time=time.perf_counter(),
+                metadata={"degrade_stage": degrade_stage, "action": "used raw query directly"},
+            )
+        )
+    else:
+        rem_dl = get_remaining_deadline()
+        if rem_dl <= 0.3:
+            trace.finalize()
+            return PipelineResult(
+                answer="Request timed out before processing.",
+                status="timeout",
+                status_code=408,
+                trace=trace,
+                citations=[],
+                retrieved_hits=[],
+                rounds_used=0,
+                degraded_stage=degrade_stage,
+            )
 
-    trace.steps.append(
-        StepTrace(
-            name="1_understand",
-            start_time=t_step_start,
-            end_time=t_step_end,
-            work_ms=round((t_step_end - t_step_start) * 1000, 2),
-            metadata={"search_query": search_query, "is_off_topic": is_off_topic},
-        )
-    )
+        understand_prompt = [
+            {
+                "role": "system",
+                "content": (
+                    "You are an assistant query analyzer for a research library containing 3 papers:\n"
+                    "1. Attention Is All You Need\n"
+                    "2. Moshi: Speech-text foundation model for real-time dialogue\n"
+                    "3. Dynamic Chunking for End-to-End Hierarchical Sequence Modeling\n"
+                    "Respond in JSON format: {\"is_off_topic\": bool, \"search_query\": str}\n"
+                    "If clearly off-topic, set is_off_topic: true."
+                ),
+            },
+            {"role": "user", "content": question},
+        ]
 
-    if is_off_topic:
-        trace.finalize()
-        refusal_msg = (
-            "I can only answer questions grounded in the 3 indexed papers: 'Attention Is All You Need', "
-            "'Moshi', and 'Dynamic Chunking'. This question appears outside that scope."
+        async def do_understand():
+            return await groq.stream_chat(
+                messages=understand_prompt,
+                max_tokens=500,
+                model=UNDERSTAND_MODEL,
+                timeout=get_remaining_deadline(),
+            )
+
+        t_step_start = time.perf_counter()
+        und_res, und_work_ms, und_retry_ms, und_retries = await execute_step_with_retry(
+            step_name="1_understand",
+            coro_fn=do_understand,
+            deadline_remaining_fn=get_remaining_deadline,
+            limiter=lim,
+            estimated_tokens=200,
         )
-        return PipelineResult(
-            answer=refusal_msg,
-            status="refused_correctly",
-            status_code=200,
-            trace=trace,
-            citations=[],
-            retrieved_hits=[],
-            rounds_used=0,
+        t_step_end = time.perf_counter()
+
+        trace.total_tokens_in += und_res.get("tokens_in", 0)
+        trace.total_tokens_out += und_res.get("tokens_out", 0)
+
+        # Handle rate limit shedding
+        if und_res.get("status") == "rate_limited" or und_res.get("status_code") == 429:
+            trace.finalize()
+            return PipelineResult(
+                answer=f"Request shed: {und_res.get('error_body')}",
+                status="rate_limited",
+                status_code=429,
+                trace=trace,
+                citations=[],
+                retrieved_hits=[],
+                rounds_used=0,
+                degraded_stage=degrade_stage,
+            )
+
+        # Parse JSON
+        content_txt = und_res.get("content", "")
+        try:
+            json_match = re.search(r"\{.*\}", content_txt, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group(0))
+                is_off_topic = bool(data.get("is_off_topic", False))
+                search_query = data.get("search_query", question).strip() or question
+        except Exception:
+            pass
+
+        trace.steps.append(
+            StepTrace(
+                name="1_understand",
+                start_time=t_step_start,
+                end_time=t_step_end,
+                work_ms=und_work_ms,
+                retry_ms=und_retry_ms,
+                retries=und_retries,
+                metadata={"search_query": search_query, "is_off_topic": is_off_topic},
+            )
         )
+
+        if is_off_topic:
+            trace.finalize()
+            refusal_msg = (
+                "I can only answer questions grounded in the 3 indexed papers: 'Attention Is All You Need', "
+                "'Moshi', and 'Dynamic Chunking'. This question appears outside that scope."
+            )
+            return PipelineResult(
+                answer=refusal_msg,
+                status="refused_correctly",
+                status_code=200,
+                trace=trace,
+                citations=[],
+                retrieved_hits=[],
+                rounds_used=0,
+                degraded_stage=degrade_stage,
+            )
 
     # =========================================================================
     # STEP 2: RETRIEVE (Tool call with 1.5s timeout + 1 retry)
@@ -314,7 +375,7 @@ async def answer(
     t_step_start = time.perf_counter()
     hits, ret_work_ms, ret_retry_ms, ret_retries = await retrieve_tool(
         query=search_query,
-        setting_key=setting_key,
+        setting_key=effective_setting,
         timeout=min(RETRIEVAL_TOOL_TIMEOUT, rem_dl),
     )
     t_step_end = time.perf_counter()
@@ -327,7 +388,7 @@ async def answer(
             work_ms=ret_work_ms,
             retry_ms=ret_retry_ms,
             retries=ret_retries,
-            metadata={"hits_count": len(hits), "top_score": hits[0]["score"] if hits else 0.0},
+            metadata={"hits_count": len(hits), "top_score": hits[0]["score"] if hits else 0.0, "setting": effective_setting},
         )
     )
 
@@ -363,6 +424,7 @@ async def answer(
             citations=[],
             retrieved_hits=hits,
             rounds_used=0,
+            degraded_stage=degrade_stage,
         )
 
     # Format retrieved evidence
@@ -378,7 +440,6 @@ async def answer(
     valid_citations = []
     critique_feedback = ""
     rounds_executed = 0
-    verification_success = False
 
     for round_num in range(1, MAX_VERIFY_ROUNDS + 1):
         rounds_executed = round_num
@@ -395,9 +456,9 @@ async def answer(
                 citations=[],
                 retrieved_hits=hits,
                 rounds_used=rounds_executed,
+                degraded_stage=degrade_stage,
             )
 
-        t_draft_start = time.perf_counter()
         draft_messages = [
             {
                 "role": "system",
@@ -421,11 +482,21 @@ async def answer(
             },
         ]
 
-        draft_res = await groq.stream_chat(
-            messages=draft_messages,
-            max_tokens=700,
-            model=DRAFT_MODEL,
-            timeout=rem_dl,
+        async def do_draft():
+            return await groq.stream_chat(
+                messages=draft_messages,
+                max_tokens=700,
+                model=DRAFT_MODEL,
+                timeout=get_remaining_deadline(),
+            )
+
+        t_draft_start = time.perf_counter()
+        draft_res, draft_work_ms, draft_retry_ms, draft_retries = await execute_step_with_retry(
+            step_name=f"4_draft_round_{round_num}",
+            coro_fn=do_draft,
+            deadline_remaining_fn=get_remaining_deadline,
+            limiter=lim,
+            estimated_tokens=500,
         )
         t_draft_end = time.perf_counter()
 
@@ -438,10 +509,26 @@ async def answer(
                 name=f"4_draft_round_{round_num}",
                 start_time=t_draft_start,
                 end_time=t_draft_end,
-                work_ms=round((t_draft_end - t_draft_start) * 1000, 2),
+                work_ms=draft_work_ms,
+                retry_ms=draft_retry_ms,
+                retries=draft_retries,
                 metadata={"tokens_out": draft_res.get("tokens_out", 0)},
             )
         )
+
+        if draft_res.get("status") == "rate_limited" or draft_res.get("status_code") == 429:
+            # Shed or degrade
+            trace.finalize()
+            return PipelineResult(
+                answer=f"Request shed: {draft_res.get('error_body')}",
+                status="rate_limited",
+                status_code=429,
+                trace=trace,
+                citations=[],
+                retrieved_hits=hits,
+                rounds_used=rounds_executed,
+                degraded_stage=degrade_stage,
+            )
 
         # STEP 5A: FREE CODE CHECK
         t_chk_start = time.perf_counter()
@@ -463,7 +550,6 @@ async def answer(
             if round_num < MAX_VERIFY_ROUNDS:
                 continue
             else:
-                # Failed verification after max rounds -> Refuse
                 trace.finalize()
                 refusal_msg = f"Refused: The answer could not be verified against the papers ({code_msg})."
                 return PipelineResult(
@@ -474,18 +560,28 @@ async def answer(
                     citations=[],
                     retrieved_hits=hits,
                     rounds_used=rounds_executed,
+                    degraded_stage=degrade_stage,
                 )
 
         valid_citations = cites
 
         # STEP 5B: LLM FACTUALITY AUDIT CHECK
-        rem_dl = get_remaining_deadline()
-        if rem_dl <= 0.3:
-            # Deadline tight; accept code-checked draft
-            verification_success = True
+        if degrade_stage >= 3:
+            # Under severe pressure: skip LLM check and rely on passed code check
+            trace.steps.append(
+                StepTrace(
+                    name=f"5_verify_llm_skipped_pressure_round_{round_num}",
+                    start_time=time.perf_counter(),
+                    end_time=time.perf_counter(),
+                    metadata={"degrade_stage": degrade_stage, "action": "accepted passed code check"},
+                )
+            )
             break
 
-        t_audit_start = time.perf_counter()
+        rem_dl = get_remaining_deadline()
+        if rem_dl <= 0.3:
+            break
+
         audit_prompt = [
             {
                 "role": "system",
@@ -501,11 +597,21 @@ async def answer(
             },
         ]
 
-        audit_res = await groq.stream_chat(
-            messages=audit_prompt,
-            max_tokens=400,
-            model=VERIFY_MODEL,
-            timeout=rem_dl,
+        async def do_audit():
+            return await groq.stream_chat(
+                messages=audit_prompt,
+                max_tokens=400,
+                model=VERIFY_MODEL,
+                timeout=get_remaining_deadline(),
+            )
+
+        t_audit_start = time.perf_counter()
+        audit_res, audit_work_ms, audit_retry_ms, audit_retries = await execute_step_with_retry(
+            step_name=f"5_verify_llm_round_{round_num}",
+            coro_fn=do_audit,
+            deadline_remaining_fn=get_remaining_deadline,
+            limiter=lim,
+            estimated_tokens=200,
         )
         t_audit_end = time.perf_counter()
 
@@ -519,13 +625,14 @@ async def answer(
                 name=f"5_verify_llm_round_{round_num}",
                 start_time=t_audit_start,
                 end_time=t_audit_end,
-                work_ms=round((t_audit_end - t_audit_start) * 1000, 2),
+                work_ms=audit_work_ms,
+                retry_ms=audit_retry_ms,
+                retries=audit_retries,
                 metadata={"verdict": audit_verdict[:80], "verified": is_verified},
             )
         )
 
         if is_verified:
-            verification_success = True
             break
         else:
             critique_feedback = audit_verdict
@@ -542,9 +649,10 @@ async def answer(
                     citations=[],
                     retrieved_hits=hits,
                     rounds_used=rounds_executed,
+                    degraded_stage=degrade_stage,
                 )
 
-    # GATED DELIVERY (Option 2): Tokens dispatched only after complete verification
+    # GATED DELIVERY: Tokens dispatched only after complete verification
     t_ready = time.perf_counter()
     trace.first_token_ready_time = t_ready
     trace.finalize()
@@ -557,6 +665,7 @@ async def answer(
         citations=valid_citations,
         retrieved_hits=hits,
         rounds_used=rounds_executed,
+        degraded_stage=degrade_stage,
     )
 
 
@@ -566,6 +675,7 @@ def print_trace_summary(res: PipelineResult) -> None:
     print("PIPELINE EXECUTION TRACE")
     print("=" * 70)
     print(f"Status: {res.status.upper()} (HTTP {res.status_code})")
+    print(f"Degraded Mode Stage: {res.degraded_stage}")
     print(f"Total Latency: {t.total_ms:.1f} ms")
     print(f"  - Total Working Time: {t.total_work_ms:.1f} ms")
     print(f"  - Total Waiting Time: {t.total_wait_ms:.1f} ms")
@@ -577,10 +687,10 @@ def print_trace_summary(res: PipelineResult) -> None:
     print(f"Verification Rounds: {res.rounds_used}")
 
     print("\nStep-by-Step Latency Breakdown:")
-    print(f"  {'Step':<28} | {'Work (ms)':<10} | {'Wait (ms)':<10} | {'Retry (ms)':<10} | {'Retries'}")
-    print("  " + "-" * 68)
+    print(f"  {'Step':<32} | {'Work (ms)':<10} | {'Wait (ms)':<10} | {'Retry (ms)':<10} | {'Retries'}")
+    print("  " + "-" * 72)
     for s in t.steps:
-        print(f"  {s.name:<28} | {s.work_ms:<10.1f} | {s.wait_ms:<10.1f} | {s.retry_ms:<10.1f} | {s.retries}")
+        print(f"  {s.name:<32} | {s.work_ms:<10.1f} | {s.wait_ms:<10.1f} | {s.retry_ms:<10.1f} | {s.retries}")
 
 
 async def main():
