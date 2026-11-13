@@ -11,14 +11,6 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
 
 ---
 
-### 2026-11-14: Document Ingestion and Heading Tracking
-* **Decision:** Parse the 3 arXiv papers with PyMuPDF (`fitz`), tracking the active section heading in force at the top of each page using a hybrid heuristic (font size >= 1.12x body font, bold flags, and regex for standard/numbered headings).
-* **Why:** Enables precise paper/page/section attribution for every retrieved passage without brittle OCR or opaque external parsers.
-* **What it costs:** Requires downloading the PyMuPDF native wheel and managing PDF layout edge cases (e.g. multi-column text, formulas).
-
-
----
-
 ### 2026-11-14: Stand-in Architecture
 * **Decision:** Implement the stand-in model service as a standalone local HTTP server (FastAPI/Uvicorn) with an async simulator core.
 * **Why:** Enforces true protocol and transport parity with Groq over `httpx`, subjecting the client pipeline to real socket connection pooling, HTTP headers, chunked SSE streaming, and network timeouts.
@@ -26,15 +18,14 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
 
 ---
 
-### 2026-11-14: Retrieval Strategy Phase 1
-* **Decision:** Implement pure BM25 lexical passage retrieval over chunked arXiv papers for the initial pipeline baseline, before testing dense embeddings.
-* **Why:** Fast, lightweight, zero-dependency token matching, highly effective for exact keyword and terminology lookups in research papers without external API overhead.
-* **What it costs:** Lacks semantic generalization for questions phrased in non-exact synonyms or paraphrased queries.
+### 2026-11-14: Document Ingestion and Heading Tracking
+* **Decision:** Parse the 3 arXiv papers with PyMuPDF (`fitz`), tracking the active section heading in force at the top of each page using a hybrid heuristic (font size >= 1.12x body font, bold flags, and regex for standard/numbered headings).
+* **Why:** Enables precise paper/page/section attribution for every retrieved passage without brittle OCR or opaque external parsers.
+* **What it costs:** Requires downloading the PyMuPDF native wheel and managing PDF layout edge cases (e.g. multi-column text, formulas).
 
 ---
 
-### 2026-11-14: Evaluation Harness
-* **Decision:** Build an automated evaluation and scoring harness for the 15+ benchmark questions that assigns preliminary grades (`correct`, `wrong`, `refused_correctly`, `refused_wrongly`) alongside ground-truth answer verification.
-* **Why:** Enables repeatable, automated sweeps across multiple load profiles and retrieval configurations.
-* **What it costs:** Automated grading heuristics require rigorous spot-checking to avoid false positives/negatives in citation matching.
-
+### 2026-11-14: Passage Retrieval & Local Re-ranking
+* **Decision:** Implemented lexical BM25 (`rank-bm25`) paired with local TF-IDF Cosine re-ranking (`scikit-learn`) across 3 configurable settings (A, B, C) with strict citation tracking (`[Paper, §Section, p. Page]`).
+* **Why:** Zero embedding API overhead, completely local, deterministic, and preserves exact provenance for all retrieved passages.
+* **What it costs:** Pure lexical overlap cannot bridge vocabulary gaps where queries use synonyms absent from paper text.
