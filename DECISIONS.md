@@ -29,3 +29,15 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
 * **Decision:** Implemented lexical BM25 (`rank-bm25`) paired with local TF-IDF Cosine re-ranking (`scikit-learn`) across 3 configurable settings (A, B, C) with strict citation tracking (`[Paper, §Section, p. Page]`).
 * **Why:** Zero embedding API overhead, completely local, deterministic, and preserves exact provenance for all retrieved passages.
 * **What it costs:** Pure lexical overlap cannot bridge vocabulary gaps where queries use synonyms absent from paper text.
+
+---
+
+### 2026-11-14: Empirically Measured Real Groq Service Limits
+* **Decision:** Measured and logged real Groq limits and latency distributions for model `openai/gpt-oss-20b` without extrapolation.
+* **Findings:**
+  - **Requests Per Minute (RPM):** 30 (explicitly reported in Groq's 429 error payload).
+  - **Tokens Per Minute (TPM):** 8,000 (`x-ratelimit-limit-tokens`).
+  - **Requests Per Window:** 1,000 (`x-ratelimit-limit-requests` with ~2.5h rolling reset).
+  - **Latency (25 Sequential Requests):** TTFT p50 = 587.64 ms, p95 = 1545.20 ms; Total time p50 = 741.36 ms, p95 = 1606.30 ms.
+  - **Concurrency Ceiling:** Concurrency 2 (2/2 ok), Concurrency 4 (4/4 ok), Concurrency 8 (2/8 ok, 6/8 rate-limited 429).
+  - **HTTP 429 Behavior & Recovery:** Returns code `rate_limit_exceeded`, `retry-after: 2` seconds. Sleeping the exact 2.0s duration yielded 100% recovery with 475.24 ms latency.

@@ -52,3 +52,4 @@ PAPER_DISPLAY_NAMES = {
 GROQ_MODEL = "openai/gpt-oss-20b"
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 STANDIN_API_URL = "http://127.0.0.1:8000/v1/chat/completions"
+
