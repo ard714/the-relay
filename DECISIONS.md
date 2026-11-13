@@ -41,3 +41,10 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
   - **Latency (25 Sequential Requests):** TTFT p50 = 587.64 ms, p95 = 1545.20 ms; Total time p50 = 741.36 ms, p95 = 1606.30 ms.
   - **Concurrency Ceiling:** Concurrency 2 (2/2 ok), Concurrency 4 (4/4 ok), Concurrency 8 (2/8 ok, 6/8 rate-limited 429).
   - **HTTP 429 Behavior & Recovery:** Returns code `rate_limit_exceeded`, `retry-after: 2` seconds. Sleeping the exact 2.0s duration yielded 100% recovery with 475.24 ms latency.
+
+---
+
+### 2026-11-14: Verification Output Gating (Streaming AFTER Verification)
+* **Decision:** Stream tokens to the user only AFTER complete verification (Option 2) rather than speculative early streaming.
+* **Why:** The brief explicitly states the assistant *"never wants to send a wrong or embarrassing answer just to stay fast."* Delivering tokens before verification could expose hallucinations or false claims to the user before they are caught by the verifier.
+* **What it costs:** Time to First Token (TTFT) perceived by the user now includes the full verification pipeline (query understanding + retrieval + draft generation + verification checks), shifting latency from after first token to before first token.

@@ -76,15 +76,18 @@ class GroqClient:
         temperature: float = 0.7,
         model: Optional[str] = None,
         request_id: Optional[str] = None,
+        timeout: Optional[float] = None,
     ) -> Dict[str, Any]:
         """
         Send a streaming request to Groq API.
         Does NOT retry on error.
+        Receives deadline/timeout for lower layers to enforce user wait bounds.
         Logs every request to data/raw_real.jsonl.
         """
         req_id = request_id or f"req_{uuid.uuid4().hex[:12]}"
         target_model = model or self.model
         t_queue_entry = time.perf_counter()
+        call_timeout = max(0.2, timeout) if timeout is not None else 45.0
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -118,6 +121,7 @@ class GroqClient:
                 GROQ_API_URL,
                 headers=headers,
                 json=payload,
+                timeout=call_timeout,
             ) as response:
                 status_code = response.status_code
 

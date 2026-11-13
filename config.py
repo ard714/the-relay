@@ -50,6 +50,15 @@ PAPER_DISPLAY_NAMES = {
 
 # Groq and Inference settings
 GROQ_MODEL = "openai/gpt-oss-20b"
+UNDERSTAND_MODEL = "openai/gpt-oss-20b"
+DRAFT_MODEL = "openai/gpt-oss-20b"
+VERIFY_MODEL = "openai/gpt-oss-20b"
+
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 STANDIN_API_URL = "http://127.0.0.1:8000/v1/chat/completions"
 
+# Pipeline thresholds & budgets
+RETRIEVAL_SCORE_THRESHOLD = 2.0  # Min BM25 score required to proceed to LLM draft
+RETRIEVAL_TOOL_TIMEOUT = 1.5     # Tool timeout in seconds
+MAX_VERIFY_ROUNDS = 2            # Maximum verification loop iterations
+STREAM_AFTER_VERIFICATION = True # User Option 2: Gated streaming after verification
