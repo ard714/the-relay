@@ -1,0 +1,178 @@
+================================================================================
+THE RELAY - SYSTEM EVALUATION: AUDIT LOG OF PROBLEMS, BLUNDERS & FIXES
+================================================================================
+Generated: 2026-11-14
+Repository: c:\Users\Aryan Deo\Desktop\vaani
+Scope: Pipeline logic, retrieval calibration, rate limiting, and table reporting
+
+--------------------------------------------------------------------------------
+1. THE SETTING C CONFIDENCE SCORE SCALE BUG (0.0% CORRECT RATE)
+--------------------------------------------------------------------------------
+- PROBLEM:
+  In the initial Table 3 benchmark, Setting C achieved 0.0% accuracy, outputting
+  tiny 17-token responses and recording 22 'refused_wrongly' grades on answerable
+  questions. Every answerable query returned:
+    "The papers do not say. (Retrieval confidence score 0.74 was below the
+     required threshold of 2.00)."
+- ROOT CAUSE:
+  In config.py, RETRIEVAL_SCORE_THRESHOLD was set to 2.0 based on raw BM25.
+  Settings A and B (no re-ranking) return raw BM25 scores (typically 3.0 to 15.0+).
+  However, Setting C normalizes BM25 into [0, 1] and blends it with TF-IDF cosine
+  similarity [0, 1] using weights 0.65 + 0.35 = 1.0. Thus, Setting C's final score
+  is mathematically bounded in [0.0, 1.0] (typically 0.65 to 0.85). In pipeline.py
+  Step 3 (Decide), checking `top_score < 2.0` was ALWAYS true, causing the pipeline
+  to falsely classify 100% of answerable questions as low confidence and refuse
+  them before invoking the draft LLM.
+- FIX:
+  Modified pipeline.py Step 3 to evaluate confidence using the unnormalized
+  `bm25_score` (hits[0].get("bm25_score", hits[0]["score"])) rather than the
+  blended score. Once applied, Setting C immediately passed to drafting and
+  achieved valid 'correct' grades.
+
+--------------------------------------------------------------------------------
+2. RATE-LIMIT SHEDDING IN EVALUATION SUITE (UP TO 78% REQUESTS DROPPED)
+--------------------------------------------------------------------------------
+- PROBLEM:
+  During retrieval evaluation, Setting A suffered a 77.8% drop rate (14/18 dropped),
+  Setting B dropped 38.9% (7/18), and Setting C dropped 33% as 'rate_limited'.
+- ROOT CAUSE:
+  Each question requires up to 3 model calls (Understand -> Draft -> Verify).
+  Evaluating 18 questions sequentially makes up to 54 model calls. With an
+  insufficient 0.3s sleep delay in eval_retrieval.py, 15 model calls were issued
+  in ~20 seconds, breaching the 30 RPM / 8,000 TPM provider ceiling. When the 429
+  response arrived with a 25s reset wait, limiter.py compared `wait > user_patience`
+  (25s > 15s deadline) and shed all subsequent questions immediately to protect
+  user patience.
+- FIX:
+  Increased `user_patience` in eval_retrieval.py from 15.0s to 30.0s during evaluation
+  and added an explicit inter-question pacing delay (2.5s on stand-in, 10-12s on
+  real Groq) to ensure sequential multi-call runs stay strictly within the 30 RPM
+  sliding window.
+
+--------------------------------------------------------------------------------
+3. SETTING C TOKEN DENSITY & 8,000 TPM SIZING
+--------------------------------------------------------------------------------
+- PROBLEM:
+  A naive Setting C configuration (10 chunks of 500 tokens) places 5,000 tokens of
+  retrieved context into the draft prompt alone. Adding system instructions (400 tok),
+  user question (150 tok), verification context (5,200 tok), and generation (250 tok)
+  means a single request consumes 6,000 to 10,000+ tokens. On Groq's free tier
+  (8,000 TPM limit), a single query would exhaust the entire minute's quota or
+  instantly trigger a 429 error.
+- ROOT CAUSE:
+  Context sizing did not account for the provider's physical tokens-per-minute cliff.
+- FIX:
+  Shrunk Setting C in config.py from 500 words to 350 words at top_k=7 (~2,450 tokens
+  of context), keeping total tokens per request around ~3,200, which operates safely
+  under the 8,000 TPM ceiling with pacing. Documented as an architectural finding:
+  a setting that cannot survive on the tier without immediate 429 starvation informs
+  system sizing.
+
+--------------------------------------------------------------------------------
+4. THE "7.0 ms TTFT ILLUSION" IN TABLE 2A
+--------------------------------------------------------------------------------
+- PROBLEM:
+  Table 2a reported that under 'sustained_overload', the median Time to First Token
+  (TTFT p50) was 7.0 milliseconds. Reviewers would conclude either the data was
+  fabricated or the LLM magically became 100x faster under overload.
+- ROOT CAUSE:
+  In pipeline.py (PipelineTrace.finalize()), if a request was dropped or shed by
+  the limiter before ever contacting the model (first_token_ready_time == 0.0),
+  the code defaulted:
+    `self.delay_before_first_token_ms = self.total_ms` (which was 6-7 ms shedding time!)
+  Then in load_runner.py, this 7.0 ms value was written into results.csv under
+  first_token_ms. In compute_tables.py, any row with first_token_ms > 0 was included
+  in latency percentiles regardless of whether the status was 'ok' or 'rate_limited'.
+- FIX:
+  1) In pipeline.py, set `delay_before_first_token_ms = 0.0` if first_token_ready_time == 0.0.
+  2) In load_runner.py, strictly write `""` (empty) to first_token_ms if status != "ok".
+  3) In compute_tables.py, compute TTFT percentiles strictly on rows with status == "ok".
+  4) Sanitized 95 historical rows in results.csv where dropped requests had dummy TTFTs.
+  Result: Sustained overload TTFT p50 now correctly reports realistic LLM latency (2464.1 ms).
+
+--------------------------------------------------------------------------------
+5. MISSING WAIT TIME IN LATENCY TRACES (SECTION 4 BREAKDOWN)
+--------------------------------------------------------------------------------
+- PROBLEM:
+  Section 4 of the write-up requires: "For one request that was slow, split its
+  latency into waiting, working and retrying, and say whether the delay came before
+  or after the first token. Show how you know."
+  However, in traces.jsonl, every request recorded `total_wait_ms: 0.0`, leaving an
+  unexplained gap between total_ms and (work_ms + retry_ms).
+- ROOT CAUSE:
+  In limiter.py, `acquire_slot()` correctly measured the queue and sliding-window
+  delay (`wait_ms`), but `execute_step_with_retry()` discarded the value:
+    `return res, work_ms, total_retry_ms, retries_used`  <-- wait_ms omitted!
+  Consequently, StepTrace.wait_ms defaulted to 0.0 ms for all steps.
+- FIX:
+  Updated `execute_step_with_retry()` in limiter.py to return:
+    `(res, work_ms, total_wait_ms, total_retry_ms, retries_used)`
+  Unpacked and stored `wait_ms` in StepTrace in pipeline.py for Understand, Draft,
+  and Verify steps. Traces now reflect true wait times, satisfying:
+    Total Time = Wait Time + Work Time + Retry Time.
+
+--------------------------------------------------------------------------------
+6. TABLE 3 OUTCOME PERCENTAGES DID NOT SUM TO 100%
+--------------------------------------------------------------------------------
+- PROBLEM:
+  In Table 3, the columns (Correct & Cited %, Wrong %, Correctly Refused %) summed
+  to only 16.7% for Setting A and 50.0% for Setting B.
+- ROOT CAUSE:
+  compute_tables.py calculated:
+    corr_pct = (correct_count / N) * 100
+    wrong_pct = (wrong_count / N) * 100
+    ref_pct = (refused_correctly_count / N) * 100
+  Requests that were shed (status='rate_limited') or 'refused_wrongly' were included
+  in the denominator (N=18) but completely excluded from all three numerator categories.
+- FIX:
+  In compute_tables.py, updated `wrong` to absorb both 'wrong' and 'refused_wrongly'
+  grades. Furthermore, pacing in eval_retrieval.py prevents rate-limited drops so
+  that every query completes, ensuring reported percentages total exactly 100.0%.
+
+--------------------------------------------------------------------------------
+7. TABLE 2A DAILY BUDGET EXHAUSTION REPORTING "0.0 / 0.0 / 0.0 ms"
+--------------------------------------------------------------------------------
+- PROBLEM:
+  When testing the daily budget exhaustion scenario, Table 2a printed:
+    `First token p50 / p95 / p99: 0.0 / 0.0 / 0.0 ms`
+- ROOT CAUSE:
+  When daily budget is exhausted, 0 requests reach the model to generate a first
+  token. The brief explicitly states: "Write 'not measured' where you did not
+  measure something."
+- FIX:
+  Updated compute_tables.py so that when 0 requests succeed or ttfts is empty,
+  the latency cell formats cleanly as "not measured".
+
+--------------------------------------------------------------------------------
+8. STAND-IN SIMULATOR VS. REAL GROQ API FOR QUALITY EVALUATIONS
+--------------------------------------------------------------------------------
+- PROBLEM:
+  Running retrieval evaluation against the stand-in model service yielded artificial
+  failures on hyperparameter questions (e.g. Adam optimizer parameters in q04).
+- ROOT CAUSE:
+  The stand-in service (standin.py) is a stochastic timing, queueing, and protocol
+  simulator returning randomized canned snippets. It is designed to stress-test
+  load shapes (Table 2a/2b) without burning free tier quotas. It is NOT an LLM and
+  cannot synthesize novel reasoning.
+- FIX / RULE:
+  Use the stand-in model service for Table 2a and 2b (steady, burst, overload,
+  rpm_halved, daily_budget_exhausted). For Table 3 answer-quality benchmarking,
+  run with `--real --cap 18` against the real Groq API (openai/gpt-oss-20b) so the
+  model actually reads the retrieved text chunks and drafts factual answers.
+
+--------------------------------------------------------------------------------
+9. QUES.YAML MISSING GROUND TRUTH & KEYWORD ANCHORS (PENDING DATA COMPLETION)
+--------------------------------------------------------------------------------
+- PROBLEM:
+  ques.yaml contains 15 newly created questions (q19 to q33) to satisfy Section 3
+  ("at least 15 questions you wrote yourself"). However, the file is formatted as
+  JSON (despite the .yaml extension) and lacks `expected_keywords` and `ground_truth`
+  for all 9 answerable questions.
+- ROOT CAUSE & RISK:
+  If eval_retrieval.py is executed on ques.yaml in its current state, `grade_answer()`
+  will look for `expected_keywords` (which returns []), find 0 matched keywords,
+  and auto-grade 100% of answerable questions as `wrong`.
+- ACTION REQUIRED:
+  Populate `expected_keywords` and `ground_truth` for q19-q26 and q32 in ques.yaml
+  before running the Section 3 quality benchmark.
+================================================================================

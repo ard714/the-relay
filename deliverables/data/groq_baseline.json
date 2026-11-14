@@ -1,0 +1,76 @@
+{
+  "model": "openai/gpt-oss-20b",
+  "probe_timestamp_utc": "2026-11-13T20:24:48.817697+00:00",
+  "total_requests_sent": 40,
+  "raw_rate_limit_headers": {
+    "x-ratelimit-limit-requests": "1000",
+    "x-ratelimit-limit-tokens": "8000",
+    "x-ratelimit-remaining-requests": "906",
+    "x-ratelimit-remaining-tokens": "5834",
+    "x-ratelimit-reset-requests": "2h15m21.6s",
+    "x-ratelimit-reset-tokens": "16.245s"
+  },
+  "latency_p50_p95_ms": {
+    "ttft_p50": 587.64,
+    "ttft_p95": 1545.2,
+    "total_p50": 741.36,
+    "total_p95": 1606.3
+  },
+  "concurrency_ramp": [
+    {
+      "concurrency": 2,
+      "requests_sent": 2,
+      "succeeded": 2,
+      "failed": 0,
+      "status_codes": [
+        200,
+        200
+      ],
+      "errors": []
+    },
+    {
+      "concurrency": 4,
+      "requests_sent": 4,
+      "succeeded": 4,
+      "failed": 0,
+      "status_codes": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "errors": []
+    },
+    {
+      "concurrency": 8,
+      "requests_sent": 8,
+      "succeeded": 2,
+      "failed": 6,
+      "status_codes": [
+        200,
+        429,
+        429,
+        200,
+        429,
+        429,
+        429,
+        429
+      ],
+      "errors": [
+        "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kscc7p5jf1evbn7xdybac1dy` service tier `on_demand` on requests per minute (RPM): Limit 30, Used 30, Requested 1. Please try again in 2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"requests\",\"code\":\"rate_limit_exceeded\"}}\n",
+        "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kscc7p5jf1evbn7xdybac1dy` service tier `on_demand` on requests per minute (RPM): Limit 30, Used 30, Requested 1. Please try again in 2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"requests\",\"code\":\"rate_limit_exceeded\"}}\n"
+      ]
+    }
+  ],
+  "rate_limit_burst_and_recovery": {
+    "status_code": 429,
+    "raw_error_body": "{\"error\":{\"message\":\"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kscc7p5jf1evbn7xdybac1dy` service tier `on_demand` on requests per minute (RPM): Limit 30, Used 30, Requested 1. Please try again in 2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"requests\",\"code\":\"rate_limit_exceeded\"}}\n",
+    "retry_after_header": "2",
+    "reset_tokens_header": null,
+    "reset_requests_header": "2h26m52.8s",
+    "sleep_duration_seconds": 2.0,
+    "recovery_status": "ok",
+    "recovery_status_code": 200,
+    "recovery_latency_ms": 475.24
+  }
+}

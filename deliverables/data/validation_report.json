@@ -1,0 +1,383 @@
+{
+  "summary": {
+    "requests_evaluated": 30,
+    "ttft": {
+      "real_p50": 579.525,
+      "standin_p50": 751.35,
+      "real_p95": 1256.0884999999982,
+      "standin_p95": 1322.0544999999997,
+      "real_mean": 642.2189999999999,
+      "standin_mean": 774.5980000000001,
+      "real_min": 367.76,
+      "standin_min": 306.36,
+      "real_max": 1551.33,
+      "standin_max": 1891.91
+    },
+    "total": {
+      "real_p50": 735.405,
+      "standin_p50": 1226.5349999999999,
+      "real_p95": 1367.5419999999986,
+      "standin_p95": 1750.107,
+      "real_mean": 771.2673333333336,
+      "standin_mean": 1253.66,
+      "real_min": 463.22,
+      "standin_min": 438.78,
+      "real_max": 1617.43,
+      "standin_max": 2535.67
+    }
+  },
+  "rows": [
+    {
+      "req_index": 1,
+      "prompt": "Explain multi-head attention in one sentence.",
+      "real_ttft_ms": 1530.89,
+      "standin_ttft_ms": 768.96,
+      "real_total_ms": 1580.32,
+      "standin_total_ms": 1428.02,
+      "diff_ttft_ms": 761.93,
+      "diff_total_ms": 152.3
+    },
+    {
+      "req_index": 2,
+      "prompt": "What is the key idea behind the Moshi model in one sentence?",
+      "real_ttft_ms": 575.99,
+      "standin_ttft_ms": 702.64,
+      "real_total_ms": 733.52,
+      "standin_total_ms": 1233.52,
+      "diff_ttft_ms": 126.65,
+      "diff_total_ms": 500.0
+    },
+    {
+      "req_index": 3,
+      "prompt": "Why use dynamic chunking in sequence modeling? One sentence.",
+      "real_ttft_ms": 496.17,
+      "standin_ttft_ms": 895.38,
+      "real_total_ms": 519.79,
+      "standin_total_ms": 1286.56,
+      "diff_ttft_ms": 399.21,
+      "diff_total_ms": 766.77
+    },
+    {
+      "req_index": 4,
+      "prompt": "State the computational complexity of dot-product attention.",
+      "real_ttft_ms": 426.47,
+      "standin_ttft_ms": 769.43,
+      "real_total_ms": 715.74,
+      "standin_total_ms": 1378.2,
+      "diff_ttft_ms": 342.96,
+      "diff_total_ms": 662.46
+    },
+    {
+      "req_index": 5,
+      "prompt": "What is the role of residual connections in Transformers?",
+      "real_ttft_ms": 591.49,
+      "standin_ttft_ms": 1221.88,
+      "real_total_ms": 755.8,
+      "standin_total_ms": 1663.48,
+      "diff_ttft_ms": 630.39,
+      "diff_total_ms": 907.68
+    },
+    {
+      "req_index": 6,
+      "prompt": "Explain what a split RVQ does in speech tokenization.",
+      "real_ttft_ms": 678.47,
+      "standin_ttft_ms": 707.15,
+      "real_total_ms": 786.98,
+      "standin_total_ms": 1303.62,
+      "diff_ttft_ms": 28.68,
+      "diff_total_ms": 516.64
+    },
+    {
+      "req_index": 7,
+      "prompt": "What is the advantage of byte-level modeling over tokenizers?",
+      "real_ttft_ms": 594.57,
+      "standin_ttft_ms": 1073.68,
+      "real_total_ms": 754.56,
+      "standin_total_ms": 1153.1,
+      "diff_ttft_ms": 479.11,
+      "diff_total_ms": 398.54
+    },
+    {
+      "req_index": 8,
+      "prompt": "Explain the role of positional encodings in Transformers.",
+      "real_ttft_ms": 1551.33,
+      "standin_ttft_ms": 804.6,
+      "real_total_ms": 1617.43,
+      "standin_total_ms": 1288.15,
+      "diff_ttft_ms": 746.73,
+      "diff_total_ms": 329.28
+    },
+    {
+      "req_index": 9,
+      "prompt": "What is inner monologue in real-time dialogue models?",
+      "real_ttft_ms": 725.62,
+      "standin_ttft_ms": 344.87,
+      "real_total_ms": 904.78,
+      "standin_total_ms": 736.08,
+      "diff_ttft_ms": 380.75,
+      "diff_total_ms": 168.7
+    },
+    {
+      "req_index": 10,
+      "prompt": "How does scaled dot-product prevent small gradients with large dimensions?",
+      "real_ttft_ms": 421.92,
+      "standin_ttft_ms": 1891.91,
+      "real_total_ms": 575.96,
+      "standin_total_ms": 2535.67,
+      "diff_ttft_ms": 1469.99,
+      "diff_total_ms": 1959.71
+    },
+    {
+      "req_index": 11,
+      "prompt": "Explain multi-head attention in one sentence.",
+      "real_ttft_ms": 745.63,
+      "standin_ttft_ms": 562.88,
+      "real_total_ms": 752.61,
+      "standin_total_ms": 1166.12,
+      "diff_ttft_ms": 182.75,
+      "diff_total_ms": 413.51
+    },
+    {
+      "req_index": 12,
+      "prompt": "What is the key idea behind the Moshi model in one sentence?",
+      "real_ttft_ms": 694.63,
+      "standin_ttft_ms": 830.2,
+      "real_total_ms": 877.35,
+      "standin_total_ms": 1377.19,
+      "diff_ttft_ms": 135.57,
+      "diff_total_ms": 499.84
+    },
+    {
+      "req_index": 13,
+      "prompt": "Why use dynamic chunking in sequence modeling? One sentence.",
+      "real_ttft_ms": 684.18,
+      "standin_ttft_ms": 779.72,
+      "real_total_ms": 735.96,
+      "standin_total_ms": 1135.4,
+      "diff_ttft_ms": 95.54,
+      "diff_total_ms": 399.44
+    },
+    {
+      "req_index": 14,
+      "prompt": "State the computational complexity of dot-product attention.",
+      "real_ttft_ms": 573.71,
+      "standin_ttft_ms": 833.25,
+      "real_total_ms": 741.05,
+      "standin_total_ms": 1427.1,
+      "diff_ttft_ms": 259.54,
+      "diff_total_ms": 686.05
+    },
+    {
+      "req_index": 15,
+      "prompt": "What is the role of residual connections in Transformers?",
+      "real_ttft_ms": 559.44,
+      "standin_ttft_ms": 492.72,
+      "real_total_ms": 734.85,
+      "standin_total_ms": 556.13,
+      "diff_ttft_ms": 66.72,
+      "diff_total_ms": 178.72
+    },
+    {
+      "req_index": 16,
+      "prompt": "Explain what a split RVQ does in speech tokenization.",
+      "real_ttft_ms": 638.24,
+      "standin_ttft_ms": 642.54,
+      "real_total_ms": 804.29,
+      "standin_total_ms": 1016.42,
+      "diff_ttft_ms": 4.3,
+      "diff_total_ms": 212.13
+    },
+    {
+      "req_index": 17,
+      "prompt": "What is the advantage of byte-level modeling over tokenizers?",
+      "real_ttft_ms": 920.22,
+      "standin_ttft_ms": 811.23,
+      "real_total_ms": 1107.48,
+      "standin_total_ms": 1420.27,
+      "diff_ttft_ms": 108.99,
+      "diff_total_ms": 312.79
+    },
+    {
+      "req_index": 18,
+      "prompt": "Explain the role of positional encodings in Transformers.",
+      "real_ttft_ms": 514.07,
+      "standin_ttft_ms": 733.74,
+      "real_total_ms": 652.78,
+      "standin_total_ms": 1219.55,
+      "diff_ttft_ms": 219.67,
+      "diff_total_ms": 566.77
+    },
+    {
+      "req_index": 19,
+      "prompt": "What is inner monologue in real-time dialogue models?",
+      "real_ttft_ms": 488.94,
+      "standin_ttft_ms": 306.36,
+      "real_total_ms": 696.93,
+      "standin_total_ms": 975.75,
+      "diff_ttft_ms": 182.58,
+      "diff_total_ms": 278.82
+    },
+    {
+      "req_index": 20,
+      "prompt": "How does scaled dot-product prevent small gradients with large dimensions?",
+      "real_ttft_ms": 587.64,
+      "standin_ttft_ms": 345.35,
+      "real_total_ms": 752.07,
+      "standin_total_ms": 1002.0,
+      "diff_ttft_ms": 242.29,
+      "diff_total_ms": 249.93
+    },
+    {
+      "req_index": 21,
+      "prompt": "Explain multi-head attention in one sentence.",
+      "real_ttft_ms": 534.15,
+      "standin_ttft_ms": 1137.66,
+      "real_total_ms": 599.46,
+      "standin_total_ms": 1779.69,
+      "diff_ttft_ms": 603.51,
+      "diff_total_ms": 1180.23
+    },
+    {
+      "req_index": 22,
+      "prompt": "What is the key idea behind the Moshi model in one sentence?",
+      "real_ttft_ms": 367.76,
+      "standin_ttft_ms": 819.54,
+      "real_total_ms": 528.73,
+      "standin_total_ms": 1345.93,
+      "diff_ttft_ms": 451.78,
+      "diff_total_ms": 817.2
+    },
+    {
+      "req_index": 23,
+      "prompt": "Why use dynamic chunking in sequence modeling? One sentence.",
+      "real_ttft_ms": 740.73,
+      "standin_ttft_ms": 686.39,
+      "real_total_ms": 778.18,
+      "standin_total_ms": 1093.29,
+      "diff_ttft_ms": 54.34,
+      "diff_total_ms": 315.11
+    },
+    {
+      "req_index": 24,
+      "prompt": "State the computational complexity of dot-product attention.",
+      "real_ttft_ms": 583.06,
+      "standin_ttft_ms": 538.72,
+      "real_total_ms": 741.36,
+      "standin_total_ms": 1098.53,
+      "diff_ttft_ms": 44.34,
+      "diff_total_ms": 357.17
+    },
+    {
+      "req_index": 25,
+      "prompt": "What is the role of residual connections in Transformers?",
+      "real_ttft_ms": 469.93,
+      "standin_ttft_ms": 1369.12,
+      "real_total_ms": 641.63,
+      "standin_total_ms": 1713.95,
+      "diff_ttft_ms": 899.19,
+      "diff_total_ms": 1072.32
+    },
+    {
+      "req_index": 26,
+      "prompt": "Explain what a split RVQ does in speech tokenization.",
+      "real_ttft_ms": 549.14,
+      "standin_ttft_ms": 1264.53,
+      "real_total_ms": 668.56,
+      "standin_total_ms": 1692.0,
+      "diff_ttft_ms": 715.39,
+      "diff_total_ms": 1023.44
+    },
+    {
+      "req_index": 27,
+      "prompt": "What is the advantage of byte-level modeling over tokenizers?",
+      "real_ttft_ms": 603.8,
+      "standin_ttft_ms": 389.79,
+      "real_total_ms": 688.43,
+      "standin_total_ms": 438.78,
+      "diff_ttft_ms": 214.01,
+      "diff_total_ms": 249.65
+    },
+    {
+      "req_index": 28,
+      "prompt": "Explain the role of positional encodings in Transformers.",
+      "real_ttft_ms": 375.47,
+      "standin_ttft_ms": 426.56,
+      "real_total_ms": 463.22,
+      "standin_total_ms": 987.81,
+      "diff_ttft_ms": 51.09,
+      "diff_total_ms": 524.59
+    },
+    {
+      "req_index": 29,
+      "prompt": "What is inner monologue in real-time dialogue models?",
+      "real_ttft_ms": 495.15,
+      "standin_ttft_ms": 613.41,
+      "real_total_ms": 589.72,
+      "standin_total_ms": 1051.66,
+      "diff_ttft_ms": 118.26,
+      "diff_total_ms": 461.94
+    },
+    {
+      "req_index": 30,
+      "prompt": "How does scaled dot-product prevent small gradients with large dimensions?",
+      "real_ttft_ms": 547.76,
+      "standin_ttft_ms": 473.73,
+      "real_total_ms": 638.48,
+      "standin_total_ms": 1105.83,
+      "diff_ttft_ms": 74.03,
+      "diff_total_ms": 467.35
+    }
+  ],
+  "top_disagreements": [
+    {
+      "req_index": 10,
+      "prompt": "How does scaled dot-product prevent small gradients with large dimensions?",
+      "real_ttft_ms": 421.92,
+      "standin_ttft_ms": 1891.91,
+      "real_total_ms": 575.96,
+      "standin_total_ms": 2535.67,
+      "diff_ttft_ms": 1469.99,
+      "diff_total_ms": 1959.71
+    },
+    {
+      "req_index": 21,
+      "prompt": "Explain multi-head attention in one sentence.",
+      "real_ttft_ms": 534.15,
+      "standin_ttft_ms": 1137.66,
+      "real_total_ms": 599.46,
+      "standin_total_ms": 1779.69,
+      "diff_ttft_ms": 603.51,
+      "diff_total_ms": 1180.23
+    },
+    {
+      "req_index": 25,
+      "prompt": "What is the role of residual connections in Transformers?",
+      "real_ttft_ms": 469.93,
+      "standin_ttft_ms": 1369.12,
+      "real_total_ms": 641.63,
+      "standin_total_ms": 1713.95,
+      "diff_ttft_ms": 899.19,
+      "diff_total_ms": 1072.32
+    },
+    {
+      "req_index": 26,
+      "prompt": "Explain what a split RVQ does in speech tokenization.",
+      "real_ttft_ms": 549.14,
+      "standin_ttft_ms": 1264.53,
+      "real_total_ms": 668.56,
+      "standin_total_ms": 1692.0,
+      "diff_ttft_ms": 715.39,
+      "diff_total_ms": 1023.44
+    },
+    {
+      "req_index": 5,
+      "prompt": "What is the role of residual connections in Transformers?",
+      "real_ttft_ms": 591.49,
+      "standin_ttft_ms": 1221.88,
+      "real_total_ms": 755.8,
+      "standin_total_ms": 1663.48,
+      "diff_ttft_ms": 630.39,
+      "diff_total_ms": 907.68
+    }
+  ]
+}
