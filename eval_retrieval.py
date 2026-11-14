@@ -171,8 +171,9 @@ async def evaluate_setting(
             "degraded_stage": res.degraded_stage,
         })
 
-        # Pacing between evaluation questions
-        await asyncio.sleep(0.3)
+        # Pacing between evaluation questions to prevent sliding-window rate limit starvation
+        pacing_sec = 10.0 if source == "real" else 2.5
+        await asyncio.sleep(pacing_sec)
 
     append_results(
         csv_rows=csv_rows,
@@ -193,6 +194,7 @@ async def run_all_evaluations(
     answers_path: str = "answers.jsonl",
     source: str = "standin",
     standin_url: str = "http://127.0.0.1:8000",
+    setting_target: str = "all",
 ) -> None:
     questions = load_questions_pool(questions_path)
 
@@ -207,8 +209,10 @@ async def run_all_evaluations(
     # Shared limiter with generous ceiling for evaluation
     limiter = SharedLimiter(max_in_flight=10, rpm_limit=120)
 
+    settings_to_run = ["A", "B", "C"] if setting_target.lower() == "all" else [setting_target.upper()]
+
     try:
-        for setting in ["A", "B", "C"]:
+        for setting in settings_to_run:
             if standin_mgr:
                 await standin_mgr.reset()
             limiter.reset()
@@ -218,7 +222,7 @@ async def run_all_evaluations(
                 client=client,
                 limiter=limiter,
                 source=source,
-                user_patience=15.0,
+                user_patience=30.0,
                 csv_path=csv_path,
                 traces_path=traces_path,
                 answers_path=answers_path,
@@ -240,6 +244,7 @@ def main():
     parser.add_argument("--csv", default="results.csv", help="Path to append CSV results")
     parser.add_argument("--traces", default="traces.jsonl", help="Path to append traces")
     parser.add_argument("--answers", default="answers.jsonl", help="Path to append answers")
+    parser.add_argument("--setting", choices=["A", "B", "C", "all"], default="all", help="Specific setting to evaluate ('A', 'B', 'C', or 'all')")
     parser.add_argument("--url", default="http://127.0.0.1:8000", help="Stand-in service base URL")
     parser.add_argument("--real", action="store_true", help="Run against real Groq API (requires --cap)")
     parser.add_argument("--cap", type=int, default=None, help="Safety cap for real run")
@@ -260,6 +265,7 @@ def main():
             answers_path=args.answers,
             source=source,
             standin_url=args.url,
+            setting_target=args.setting,
         )
     )
 

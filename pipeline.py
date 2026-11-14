@@ -396,7 +396,11 @@ async def answer(
     # STEP 3: DECIDE (Branch based on retrieval threshold)
     # =========================================================================
     t_step_start = time.perf_counter()
-    top_score = hits[0]["score"] if hits else 0.0
+    if hits:
+        # If hits were reranked (blended score in [0, 1]), use raw bm25_score for the threshold
+        top_score = hits[0].get("bm25_score", hits[0]["score"])
+    else:
+        top_score = 0.0
     refused_low_confidence = (not hits) or (top_score < RETRIEVAL_SCORE_THRESHOLD)
     t_step_end = time.perf_counter()
 

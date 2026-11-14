@@ -316,7 +316,7 @@ def generate_table_3(rows: List[Dict[str, Any]]) -> str:
     setting_descriptions = {
         "A": "Setting A (120 tok, 3 pcs, no rerank)",
         "B": "Setting B (280 tok, 5 pcs, no rerank)",
-        "C": "Setting C (500 tok, 7 pcs, +rerank)",
+        "C": "Setting C (350 tok, 7 pcs, +rerank)",
     }
 
     for st in settings_order:
@@ -329,7 +329,7 @@ def generate_table_3(rows: List[Dict[str, Any]]) -> str:
         n_q = len(s_rows)
         # Outcome breakdown
         correct_cited = sum(1 for r in s_rows if r.get("answer_grade") in ("correct", "degraded_correct"))
-        wrong = sum(1 for r in s_rows if r.get("answer_grade") == "wrong")
+        wrong = sum(1 for r in s_rows if r.get("answer_grade") in ("wrong", "refused_wrongly"))
         refused_corr = sum(1 for r in s_rows if r.get("answer_grade") in ("refused_correctly", "budget_exhausted"))
 
         corr_pct = (correct_cited / n_q) * 100.0

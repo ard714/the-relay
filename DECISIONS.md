@@ -100,3 +100,10 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
   - Built a strict `--check` validation mode that enforces the presence of all 12 required columns and fails loudly if any `status` deviates from `{"ok", "rate_limited", "timeout", "error"}`.
 * **Why:** Guarantees 100% mathematical reproducibility so reviewers can audit every reported number directly against `results.csv`.
 * **What it costs:** Nearest-rank selects existing sample points rather than smooth continuous interpolations.
+
+---
+
+### 2026-11-14: Granular Latency Decomposition (`explain_slow.py`)
+* **Decision:** Implemented `explain_slow.py` to parse `traces.jsonl` and decompose any request's total latency into working, waiting (queue/limiter contention), and retrying spans.
+* **Why:** Provides the concrete empirical breakdown demanded by Section 4 ("Where the time goes"), demonstrating whether latency originated before or after the first token under gated delivery.
+* **What it costs:** Requires maintaining monotonic timestamp spans across all pipeline steps in `PipelineTrace`.

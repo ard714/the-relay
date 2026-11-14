@@ -27,11 +27,11 @@ RETRIEVAL_SETTINGS: Dict[str, Dict[str, Any]] = {
     },
     "C": {
         "name": "Setting C (Large/High-k + Rerank)",
-        "chunk_tokens": 500,
+        "chunk_tokens": 350,
         "overlap": 80,
         "top_k": 7,
         "rerank": True,
-        "description": "Large pieces (500 tokens), 7 pieces fetched, with TF-IDF cosine re-ranking",
+        "description": "Large pieces (350 tokens), 7 pieces fetched, with TF-IDF cosine re-ranking",
     },
 }
 
