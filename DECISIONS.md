@@ -107,3 +107,12 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
 * **Decision:** Implemented `explain_slow.py` to parse `traces.jsonl` and decompose any request's total latency into working, waiting (queue/limiter contention), and retrying spans.
 * **Why:** Provides the concrete empirical breakdown demanded by Section 4 ("Where the time goes"), demonstrating whether latency originated before or after the first token under gated delivery.
 * **What it costs:** Requires maintaining monotonic timestamp spans across all pipeline steps in `PipelineTrace`.
+
+---
+
+### 2026-11-14: Ground Truth Verification & Human-in-the-Loop Grader (`check_questions.py` & `grade_answers.py`)
+* **Decision:** Built a two-stage evaluation harness for user-authored questions in `ques.yaml`:
+  - `check_questions.py` searches raw PDF text via PyMuPDF across `1706.03762v7.pdf`, `2410.00037v1.pdf`, and `2507.07955v2.pdf` to verify that every `must_contain` string actually appears in the cited paper before evaluation.
+  - `grade_answers.py` computes first-pass grades (`correct`, `wrong`, `refused_correctly`, `refused_wrongly`), renders side-by-side comparisons of expected vs actual answers and matched citations, and allows manual overruling interactively or via an overrides file.
+* **Why:** Eliminates flawed evaluation criteria by verifying ground-truth existence in the source literature, while empowering the evaluator to audit and overrule auto-grades by hand.
+* **What it costs:** PyMuPDF text search operates on raw PDF character streams, requiring whitespace normalization to match hyphenated LaTeX words or font-split mathematical symbols.
