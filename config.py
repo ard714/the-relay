@@ -74,3 +74,8 @@ PRESSURE_QUEUE_THRESHOLD = 4   # Queue length triggering graceful degradation
 PRESSURE_RPM_THRESHOLD = 0.80  # 80% of RPM consumed triggers degradation
 PRESSURE_TPM_THRESHOLD = 0.80  # 80% of TPM consumed triggers degradation
 DEFAULT_COOLDOWN_SECONDS = 2.0 # Default cooldown on 429 when retry-after header missing
+
+# Price Configuration for Table 2b cost calculation ($ per 1,000,000 tokens)
+# Source: Groq pricing documentation for developer tier on-demand models
+INPUT_TOKEN_PRICE_PER_M = 0.05    # $0.05 per 1M input / prompt tokens
+OUTPUT_TOKEN_PRICE_PER_M = 0.08   # $0.08 per 1M output / completion tokens

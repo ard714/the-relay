@@ -88,3 +88,15 @@ This document tracks all key technical choices, trade-offs, rationale, and assoc
   - Formatted output rows strictly matching the brief's required 12 CSV columns in `results.csv`, paired with detailed step execution traces in `traces.jsonl` and full answers in `answers.jsonl`.
 * **Why:** Standardizes benchmarking across varying traffic profiles and guarantees complete, reproducible data collection for Table 2a and Table 2b.
 * **What it costs:** High concurrency runs against the stand-in trigger local CPU context switching and rate-limit shedding as designed.
+
+---
+
+### 2026-11-14: Deterministic Metric Computation (`compute_tables.py`)
+* **Decision:** Implemented `compute_tables.py` computing Tables 2a, 2b, and 3 strictly and exclusively from `results.csv`:
+  - Enforced the Nearest-Rank percentile method ($\text{rank} = \lceil \frac{P}{100} \times N \rceil$) to eliminate interpolation variance across datasets.
+  - Formulated peak queue length as the maximum simultaneous in-flight overlap of requests $[t_{\text{start}}, t_{\text{start}} + \text{total\_ms}/1000)$.
+  - Formulated offered rate as $\frac{N}{t_{\text{last}} - t_{\text{first}}} \times 60.0$ RPM.
+  - Computed Table 2b cost per 1,000 answers using Groq's developer tier pricing ($0.05/1M input tokens, $0.08/1M output tokens).
+  - Built a strict `--check` validation mode that enforces the presence of all 12 required columns and fails loudly if any `status` deviates from `{"ok", "rate_limited", "timeout", "error"}`.
+* **Why:** Guarantees 100% mathematical reproducibility so reviewers can audit every reported number directly against `results.csv`.
+* **What it costs:** Nearest-rank selects existing sample points rather than smooth continuous interpolations.

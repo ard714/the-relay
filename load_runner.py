@@ -244,8 +244,17 @@ async def execute_single_request(
 
     grade = grade_answer(question_obj, res)
 
+    # Strictly normalize status to one of: ok, rate_limited, timeout, error
+    normalized_status = res.status
+    if normalized_status == "refused_daily_budget_exhausted":
+        normalized_status = "rate_limited"
+    elif normalized_status.startswith("refused"):
+        normalized_status = "ok"
+    elif normalized_status not in ("ok", "rate_limited", "timeout", "error"):
+        normalized_status = "error"
+
     # If status is timeout, ttft_ms is empty
-    if res.status == "timeout":
+    if normalized_status == "timeout":
         ttft_val: Any = ""
     else:
         ttft_val = round(ttft_ms, 2) if ttft_ms is not None else ""
@@ -257,7 +266,7 @@ async def execute_single_request(
         "start_time": t_start_iso,
         "first_token_ms": ttft_val,
         "total_ms": tot_ms,
-        "status": res.status,
+        "status": normalized_status,
         "retries": retries,
         "tokens_in": tokens_in,
         "tokens_out": tokens_out,
