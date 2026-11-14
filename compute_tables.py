@@ -303,12 +303,12 @@ def generate_table_3(rows: List[Dict[str, Any]]) -> str:
     settings_order = ["A", "B", "C"]
     by_setting = {st: [] for st in settings_order}
 
-    # First look for dedicated evaluation rows (scenario starts with eval_setting_) or by retrieval_setting
+    # First look for dedicated evaluation rows (scenario is retrieval_eval or starts with eval_setting_)
     for r in rows:
         st = r.get("retrieval_setting")
         sc = r.get("scenario", "")
         if st in by_setting:
-            if sc.startswith("eval_setting_") or len([x for x in rows if x.get("scenario", "").startswith("eval_setting_")]) == 0:
+            if sc == "retrieval_eval" or sc.startswith("eval_setting_"):
                 by_setting[st].append(r)
 
     lines = []
