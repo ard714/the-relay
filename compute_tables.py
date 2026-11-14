@@ -198,9 +198,13 @@ def generate_table_2a(rows: List[Dict[str, Any]]) -> str:
         offered_rpm = compute_offered_rate_rpm(s_rows)
         offered_str = f"{offered_rpm:.1f}" if offered_rpm is not None else "Burst (instant)"
 
-        # Latencies
-        ttfts = [float(r["first_token_ms"]) for r in s_rows if r.get("first_token_ms") and float(r["first_token_ms"]) > 0]
-        totals = [float(r["total_ms"]) for r in s_rows if r.get("total_ms") and float(r["total_ms"]) >= 0]
+        # Latencies (TTFT only measured on successful 'ok' responses that actually emitted tokens)
+        ttfts = [
+            float(r["first_token_ms"])
+            for r in s_rows
+            if r.get("status") == "ok" and r.get("first_token_ms") and float(r["first_token_ms"]) > 0
+        ]
+        totals = [float(r["total_ms"]) for r in s_rows if r.get("total_ms") and float(r["total_ms"]) > 0]
 
         if ttfts:
             ttft_p50 = nearest_rank_percentile(ttfts, 50)
@@ -340,9 +344,13 @@ def generate_table_3(rows: List[Dict[str, Any]]) -> str:
         tok_list = [int(r.get("tokens_out", 0) or 0) for r in s_rows if r.get("status") == "ok"]
         avg_tokens = (sum(tok_list) / len(tok_list)) if tok_list else 0.0
 
-        # Latency percentiles
-        ttfts = [float(r["first_token_ms"]) for r in s_rows if r.get("first_token_ms") and float(r["first_token_ms"]) > 0]
-        totals = [float(r["total_ms"]) for r in s_rows if r.get("total_ms") and float(r["total_ms"]) >= 0]
+        # Latency percentiles (TTFT only measured on successful 'ok' responses that emitted tokens)
+        ttfts = [
+            float(r["first_token_ms"])
+            for r in s_rows
+            if r.get("status") == "ok" and r.get("first_token_ms") and float(r["first_token_ms"]) > 0
+        ]
+        totals = [float(r["total_ms"]) for r in s_rows if r.get("total_ms") and float(r["total_ms"]) > 0]
 
         if ttfts:
             ttft_p50 = nearest_rank_percentile(ttfts, 50)

@@ -89,7 +89,7 @@ class PipelineTrace:
                 (self.end_time - self.first_token_ready_time) * 1000, 2
             )
         else:
-            self.delay_before_first_token_ms = self.total_ms
+            self.delay_before_first_token_ms = 0.0
             self.delay_after_first_token_ms = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
@@ -302,7 +302,7 @@ async def answer(
             )
 
         t_step_start = time.perf_counter()
-        und_res, und_work_ms, und_retry_ms, und_retries = await execute_step_with_retry(
+        und_res, und_work_ms, und_wait_ms, und_retry_ms, und_retries = await execute_step_with_retry(
             step_name="1_understand",
             coro_fn=do_understand,
             deadline_remaining_fn=get_remaining_deadline,
@@ -344,6 +344,7 @@ async def answer(
                 name="1_understand",
                 start_time=t_step_start,
                 end_time=t_step_end,
+                wait_ms=und_wait_ms,
                 work_ms=und_work_ms,
                 retry_ms=und_retry_ms,
                 retries=und_retries,
@@ -495,7 +496,7 @@ async def answer(
             )
 
         t_draft_start = time.perf_counter()
-        draft_res, draft_work_ms, draft_retry_ms, draft_retries = await execute_step_with_retry(
+        draft_res, draft_work_ms, draft_wait_ms, draft_retry_ms, draft_retries = await execute_step_with_retry(
             step_name=f"4_draft_round_{round_num}",
             coro_fn=do_draft,
             deadline_remaining_fn=get_remaining_deadline,
@@ -513,6 +514,7 @@ async def answer(
                 name=f"4_draft_round_{round_num}",
                 start_time=t_draft_start,
                 end_time=t_draft_end,
+                wait_ms=draft_wait_ms,
                 work_ms=draft_work_ms,
                 retry_ms=draft_retry_ms,
                 retries=draft_retries,
@@ -610,7 +612,7 @@ async def answer(
             )
 
         t_audit_start = time.perf_counter()
-        audit_res, audit_work_ms, audit_retry_ms, audit_retries = await execute_step_with_retry(
+        audit_res, audit_work_ms, audit_wait_ms, audit_retry_ms, audit_retries = await execute_step_with_retry(
             step_name=f"5_verify_llm_round_{round_num}",
             coro_fn=do_audit,
             deadline_remaining_fn=get_remaining_deadline,
@@ -629,6 +631,7 @@ async def answer(
                 name=f"5_verify_llm_round_{round_num}",
                 start_time=t_audit_start,
                 end_time=t_audit_end,
+                wait_ms=audit_wait_ms,
                 work_ms=audit_work_ms,
                 retry_ms=audit_retry_ms,
                 retries=audit_retries,

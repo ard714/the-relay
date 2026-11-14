@@ -87,7 +87,7 @@ class TestLimiterPolicy(unittest.IsolatedAsyncioTestCase):
         def get_deadline_remaining():
             return max(0.0, deadline_budget - (time.perf_counter() - t_start))
 
-        res, work_ms, retry_ms, retries_used = await execute_step_with_retry(
+        res, work_ms, wait_ms, retry_ms, retries_used = await execute_step_with_retry(
             step_name="test_step",
             coro_fn=lambda: fake_client.stream_chat([{"role": "user", "content": "hi"}]),
             deadline_remaining_fn=get_deadline_remaining,

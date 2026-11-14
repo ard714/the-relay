@@ -253,11 +253,11 @@ async def execute_single_request(
     elif normalized_status not in ("ok", "rate_limited", "timeout", "error"):
         normalized_status = "error"
 
-    # If status is timeout, ttft_ms is empty
-    if normalized_status == "timeout":
-        ttft_val: Any = ""
+    # TTFT is strictly empty if the request did not produce tokens (e.g. rate-limited, timeout, error)
+    if normalized_status == "ok" and ttft_ms is not None and (res.trace and res.trace.first_token_ready_time > 0.0):
+        ttft_val = round(ttft_ms, 2)
     else:
-        ttft_val = round(ttft_ms, 2) if ttft_ms is not None else ""
+        ttft_val = ""
 
     csv_row = {
         "request_id": request_id,

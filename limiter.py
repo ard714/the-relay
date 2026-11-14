@@ -280,8 +280,9 @@ async def execute_step_with_retry(
     - No retry for other 4xx (400, 401, 403, 404)
     - Daily quota detection flips shared flag
 
-    Returns: (result_dict, work_ms, retry_ms, retries_used)
+    Returns: (result_dict, work_ms, wait_ms, retry_ms, retries_used)
     """
+    total_wait_ms = 0.0
     total_retry_ms = 0.0
     retries_used = 0
     base_backoff = 0.5
@@ -292,6 +293,7 @@ async def execute_step_with_retry(
             return (
                 {"status": "timeout", "status_code": 408, "error_body": "User deadline exceeded before step dispatch.", "content": ""},
                 0.0,
+                total_wait_ms,
                 total_retry_ms,
                 retries_used,
             )
@@ -301,11 +303,13 @@ async def execute_step_with_retry(
             estimated_tokens=estimated_tokens,
             deadline_remaining=rem_dl,
         )
+        total_wait_ms += wait_ms
         if not slot_ok:
             # Dropped or shed
             return (
                 {"status": "rate_limited", "status_code": 429, "error_body": slot_reason, "content": ""},
                 0.0,
+                total_wait_ms,
                 total_retry_ms,
                 retries_used,
             )
@@ -323,12 +327,12 @@ async def execute_step_with_retry(
 
         # Success case
         if status == "ok" and (status_code is None or status_code == 200):
-            return res, work_ms, total_retry_ms, retries_used
+            return res, work_ms, total_wait_ms, total_retry_ms, retries_used
 
         # Check for daily limit exhaustion
         if is_daily_quota_error(status_code, res.get("error_body"), res.get("rate_limit_headers", {})):
             limiter.set_daily_exhausted(True)
-            return res, work_ms, total_retry_ms, retries_used
+            return res, work_ms, total_wait_ms, total_retry_ms, retries_used
 
         # 429 Rate Limited
         if status_code == 429 or status == "rate_limited":
@@ -346,7 +350,7 @@ async def execute_step_with_retry(
                     f"Rate limited (429). Retry-after ({retry_after:.2f}s) exceeds remaining user deadline "
                     f"({cur_time_left:.2f}s). Shedding request without retrying."
                 )
-                return res, work_ms, total_retry_ms, retries_used
+                return res, work_ms, total_wait_ms, total_retry_ms, retries_used
 
             if attempt < retry_budget:
                 retries_used += 1
@@ -356,30 +360,27 @@ async def execute_step_with_retry(
                 total_retry_ms += (t_ret_end - t_ret_start) * 1000
                 continue
             else:
-                return res, work_ms, total_retry_ms, retries_used
+                return res, work_ms, total_wait_ms, total_retry_ms, retries_used
 
         # 5xx Server Errors or Timeouts -> Exponential Backoff with FULL JITTER
         if (status_code and status_code >= 500) or status == "timeout":
             if attempt < retry_budget:
                 retries_used += 1
                 t_ret_start = time.perf_counter()
-                # Full jitter: random between 0 and base * 2^attempt
-                backoff_cap = base_backoff * (2 ** attempt)
-                jitter_sleep = random.uniform(0.1, backoff_cap)
-                cur_time_left = deadline_remaining_fn()
-                if jitter_sleep > cur_time_left:
-                    # Not enough time left to wait
-                    return res, work_ms, total_retry_ms, retries_used
-                await asyncio.sleep(jitter_sleep)
+                jittered_backoff = random.uniform(0.1, base_backoff * (2 ** attempt))
+                cur_left = deadline_remaining_fn()
+                if jittered_backoff > cur_left:
+                    res["error_body"] = "Backoff sleep exceeds user deadline. Shedding request."
+                    return res, work_ms, total_wait_ms, total_retry_ms, retries_used
+                await asyncio.sleep(jittered_backoff)
                 t_ret_end = time.perf_counter()
                 total_retry_ms += (t_ret_end - t_ret_start) * 1000
                 continue
             else:
-                return res, work_ms, total_retry_ms, retries_used
+                return res, work_ms, total_wait_ms, total_retry_ms, retries_used
 
-        # Other 4xx Errors (400, 401, 403, 404) -> STRICTLY NO RETRY
-        if status_code and 400 <= status_code < 500:
-            return res, work_ms, total_retry_ms, retries_used
+        # Other 4xx client errors (400, 401, 403, 404) -> Do NOT retry
+        return res, work_ms, total_wait_ms, total_retry_ms, retries_used
 
-    return res, work_ms, total_retry_ms, retries_used
+    return res, work_ms, total_wait_ms, total_retry_ms, retries_used
 

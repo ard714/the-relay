@@ -1,0 +1,104 @@
+- id: q19_attn_multihead
+  question: "Why does the Transformer use multiple attention heads instead of a single attention head with the full model dimension?"
+  paper: Attention
+  expect: answer
+  must_contain: ["representation subspaces", "different positions", "attention heads"]
+  ground_truth: "Multi-head attention allows the model to jointly attend to information from different representation subspaces at different positions, capturing diverse attention patterns."
+
+- id: q20_attn_decoder
+  question: "What masking mechanism prevents the Transformer decoder from accessing future target tokens during training?"
+  paper: Attention
+  expect: answer
+  must_contain: ["subsequent positions", "masking"]
+  ground_truth: "The Transformer decoder uses masking to prevent each position from attending to subsequent positions. This ensures predictions depend only on previously generated output tokens."
+
+- id: q21_moshi_architecture
+  question: "How does Moshi's dual-stream architecture model the interaction between user speech and generated assistant speech?"
+  paper: Moshi
+  expect: answer
+  must_contain: ["stream", "streams", "audio token"]
+  ground_truth: "Moshi uses parallel streams for user and assistant audio tokens, allowing it to model incoming speech and generate outgoing speech simultaneously in a real-time dialogue setting."
+
+- id: q22_moshi_text_audio
+  question: "How does Moshi synchronize text and audio generation, and what role does text play in the generation process?"
+  paper: Moshi
+  expect: answer
+  must_contain: ["text token", "audio token", "inner monologue"]
+  ground_truth: "Moshi jointly models text and audio tokens in an interleaved sequence. Text provides semantic information through an inner monologue that helps ground speech generation, while audio tokens represent acoustic output."
+
+- id: q23_dynchunk_router
+  question: "What is the purpose of the router network in Dynamic Chunking, and how does its output affect the hierarchical sequence representation?"
+  paper: DynChunk
+  expect: answer
+  must_contain: ["router", "boundary", "hierarchical"]
+  ground_truth: "The router predicts adaptive chunk boundaries based on input representations. Its predictions determine when information is grouped into higher-level chunks, enabling hierarchical sequence processing."
+
+- id: q24_dynchunk_training
+  question: "How is the discrete chunk-boundary decision made compatible with gradient-based training in Dynamic Chunking?"
+  paper: DynChunk
+  expect: answer
+  must_contain: ["differentiable", "gradient", "straight-through"]
+  ground_truth: "The router's boundary predictions are incorporated into a differentiable training mechanism using straight-through estimators, allowing the model to learn adaptive segmentation through gradient-based optimization."
+
+- id: q25_compare_attention
+  question: "Compare the role of attention in the original Transformer and Moshi. How does each model use attention to process sequential information?"
+  paper: Attention
+  expect: answer
+  must_contain: ["self-attention"]
+  ground_truth: "The original Transformer uses multi-head self-attention to model dependencies between input and output tokens. Moshi uses attention-based sequence modeling to process synchronized multimodal audio and text streams in an autoregressive real-time dialogue framework."
+
+- id: q26_compare_hierarchy
+  question: "What is the fundamental difference between the fixed token-level sequence processing of the original Transformer and the hierarchical processing proposed by Dynamic Chunking?"
+  paper: DynChunk
+  expect: answer
+  must_contain: ["hierarchical", "chunk"]
+  ground_truth: "The original Transformer processes sequences at the token level using self-attention, whereas Dynamic Chunking introduces adaptive segmentation that groups tokens into variable-sized chunks and processes information hierarchically."
+
+- id: q27_attn_imagenet_unans
+  question: "What was the top-5 ImageNet classification accuracy achieved by the Transformer base model?"
+  paper: Attention
+  expect: refuse
+  must_contain: ["imagenet", "top-5"]
+  ground_truth: "The original Transformer paper does not report ImageNet classification results. Its experiments focus on machine translation and English constituency parsing."
+
+- id: q28_moshi_hardware_unans
+  question: "What exact NVIDIA GPU model and GPU memory configuration were used to deploy Moshi on smartphones?"
+  paper: Moshi
+  expect: refuse
+  must_contain: ["smartphone", "smartphones"]
+  ground_truth: "The paper does not report an NVIDIA GPU configuration for smartphone deployment or establish the requested smartphone hardware specification."
+
+- id: q29_dynchunk_battery_unans
+  question: "By what percentage does Dynamic Chunking reduce battery consumption compared with a standard Transformer on mobile devices?"
+  paper: DynChunk
+  expect: refuse
+  must_contain: ["battery"]
+  ground_truth: "The paper does not report battery consumption measurements or a percentage reduction on mobile devices."
+
+- id: q30_moshi_dataset_unans
+  question: "How many hours of licensed psychological counselling recordings were included in Moshi's fine-tuning dataset?"
+  paper: Moshi
+  expect: refuse
+  must_contain: ["counselling"]
+  ground_truth: "The Moshi paper does not report a psychological counselling fine-tuning dataset or the number of counselling recording hours."
+
+- id: q31_dynchunk_quantization_unans
+  question: "Which specific INT8 quantization library was used to compress the Dynamic Chunking model for deployment on Android devices?"
+  paper: DynChunk
+  expect: refuse
+  must_contain: ["int8", "android"]
+  ground_truth: "The paper does not specify an INT8 quantization library or report the described Android deployment."
+
+- id: q32_compare_training
+  question: "How do the original Transformer and Moshi differ in the type of data and prediction objectives used to train their models?"
+  paper: Attention
+  expect: answer
+  must_contain: ["machine translation"]
+  ground_truth: "The original Transformer is trained primarily for machine translation using source and target text sequences, with autoregressive target token prediction. Moshi is trained on multimodal speech and text data, learning to predict synchronized audio and text tokens for real-time dialogue."
+
+- id: q33_distractor_diffusion
+  question: "How does classifier-free guidance improve sample quality in Stable Diffusion, and what guidance scale produces the best FID score?"
+  paper: Attention
+  expect: refuse
+  must_contain: ["classifier-free", "fid score"]
+  ground_truth: "Off-topic: Stable Diffusion and classifier-free guidance are not covered by any of the three indexed papers."

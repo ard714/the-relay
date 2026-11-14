@@ -1,0 +1,357 @@
+[
+  {
+    "id": "q01_attn_dk",
+    "question": "What dimension is used for queries and keys in the scaled dot-product attention of the Transformer base model?",
+    "paper": "Attention",
+    "expect": "answer",
+    "must_contain": [
+      "64",
+      "d_k",
+      "dimension"
+    ],
+    "ground_truth": "In the base model, d_k = d_v = d_model / h = 512 / 8 = 64.",
+    "answer": "Scaled dot-product attention scales inner products by 1/sqrt(d_k) to prevent vanishing softmax gradients with d_k=64 [Attention, \u00a73.2, p. 4], while multi-head attention projects across representation subspaces [Attention, \u00a73.2.2, p. 5].",
+    "citations": [
+      "Attention, \u00a73.2, p. 4",
+      "Attention, \u00a73.2.2, p. 5"
+    ],
+    "auto_grade": "correct",
+    "final_grade": "correct",
+    "overruled": false,
+    "request_id": "eval_c_001_4a8106"
+  },
+  {
+    "id": "q02_moshi_codec",
+    "question": "What audio codec does Moshi use for tokenizing speech, and at what framerate does it operate?",
+    "paper": "Moshi",
+    "expect": "answer",
+    "must_contain": [
+      "Mimi",
+      "12.5",
+      "codec",
+      "framerate"
+    ],
+    "ground_truth": "Moshi uses the Mimi neural audio codec operating at a 12.5 Hz framerate.",
+    "answer": "Moshi models real-time spoken dialogue using the Mimi codec operating at 12.5 Hz [Moshi, \u00a75.2, p. 24], predicting acoustic and text tokens duplexly [Moshi, \u00a7R, p. 62].",
+    "citations": [
+      "Moshi, \u00a75.2, p. 24",
+      "Moshi, \u00a7R, p. 62"
+    ],
+    "auto_grade": "correct",
+    "final_grade": "correct",
+    "overruled": false,
+    "request_id": "eval_c_002_735e01"
+  },
+  {
+    "id": "q03_dynchunk_boundary",
+    "question": "How does Dynamic Chunking (H-Net) decide when to emit a chunk boundary during sequence processing?",
+    "paper": "DynChunk",
+    "expect": "answer",
+    "must_contain": [
+      "router",
+      "boundary",
+      "threshold",
+      "dynamic"
+    ],
+    "ground_truth": "A router network predicts boundary transition probabilities adaptively based on representation changes.",
+    "answer": "Dynamic Chunking (H-Net) uses router decision boundaries to segment sequences adaptively into variable-length chunks [DynChunk, \u00a7I, p. 3] while maintaining strict autoregressive causality [DynChunk, \u00a72.1.2, p. 6].",
+    "citations": [
+      "DynChunk, \u00a7I, p. 3",
+      "DynChunk, \u00a72.1.2, p. 6"
+    ],
+    "auto_grade": "correct",
+    "final_grade": "correct",
+    "overruled": false,
+    "request_id": "eval_c_003_7807be"
+  },
+  {
+    "id": "q04_attn_optimizer",
+    "question": "What optimizer and learning rate schedule was used to train the original Transformer models?",
+    "paper": "Attention",
+    "expect": "answer",
+    "must_contain": [
+      "Adam",
+      "warmup",
+      "4000",
+      "beta"
+    ],
+    "ground_truth": "The Adam optimizer with beta1=0.9, beta2=0.98, epsilon=1e-9, with 4000 warmup steps.",
+    "answer": "Scaled dot-product attention scales inner products by 1/sqrt(d_k) to prevent vanishing softmax gradients with d_k=64 [Attention, \u00a73.5, p. 7], while multi-head attention projects across representation subspaces [Moshi, \u00a74.3, p. 20].",
+    "citations": [
+      "Attention, \u00a73.5, p. 7",
+      "Moshi, \u00a74.3, p. 20"
+    ],
+    "auto_grade": "wrong",
+    "final_grade": "wrong",
+    "overruled": false,
+    "request_id": "eval_c_004_83a17a"
+  },
+  {
+    "id": "q05_moshi_latency",
+    "question": "What theoretical and practical latency does Moshi achieve for end-to-end spoken dialogue?",
+    "paper": "Moshi",
+    "expect": "answer",
+    "must_contain": [
+      "160",
+      "200",
+      "latency",
+      "ms"
+    ],
+    "ground_truth": "Moshi achieves a theoretical latency of 160 ms and practical latency of ~200 ms.",
+    "answer": "Moshi models real-time spoken dialogue using the Mimi codec operating at 12.5 Hz [Moshi, \u00a7T, p. 1], predicting acoustic and text tokens duplexly [Moshi, \u00a76.4, p. 41].",
+    "citations": [
+      "Moshi, \u00a7T, p. 1",
+      "Moshi, \u00a76.4, p. 41"
+    ],
+    "auto_grade": "wrong",
+    "final_grade": "wrong",
+    "overruled": false,
+    "request_id": "eval_c_005_5e2d0d"
+  },
+  {
+    "id": "q06_dynchunk_causality",
+    "question": "How does Dynamic Chunking maintain autoregressive causality across sequence chunks?",
+    "paper": "DynChunk",
+    "expect": "answer",
+    "must_contain": [
+      "causal",
+      "chunk",
+      "mask",
+      "autoregressive"
+    ],
+    "ground_truth": "It enforces causal masking within chunks and propagates summary states strictly without attending forward.",
+    "answer": "Request shed: {\"error\": {\"message\": \"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kscc7p5jf1evbn7xdybac1dy` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 8000, Requested 500. Please try again in 2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\", \"type\": \"tokens\", \"code\": \"rate_limit_exceeded\"}}",
+    "citations": [],
+    "auto_grade": "wrong",
+    "final_grade": "wrong",
+    "overruled": false,
+    "request_id": "eval_c_006_898da4"
+  },
+  {
+    "id": "q07_attn_scaling",
+    "question": "Why is the dot product scaled by 1/sqrt(d_k) in the Transformer attention mechanism?",
+    "paper": "Attention",
+    "expect": "answer",
+    "must_contain": [
+      "gradient",
+      "softmax",
+      "scale",
+      "d_k"
+    ],
+    "ground_truth": "For large d_k, dot products grow large in magnitude, pushing softmax into regions with vanishingly small gradients.",
+    "answer": "Request shed: {\"error\": {\"message\": \"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kscc7p5jf1evbn7xdybac1dy` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 8000, Requested 500. Please try again in 2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\", \"type\": \"tokens\", \"code\": \"rate_limit_exceeded\"}}",
+    "citations": [],
+    "auto_grade": "wrong",
+    "final_grade": "wrong",
+    "overruled": false,
+    "request_id": "eval_c_007_ec9096"
+  },
+  {
+    "id": "q08_moshi_monologue",
+    "question": "What is the Inner Monologue feature in Moshi and why is it used?",
+    "paper": "Moshi",
+    "expect": "answer",
+    "must_contain": [
+      "inner monologue",
+      "text",
+      "tokens",
+      "semantic"
+    ],
+    "ground_truth": "Moshi predicts internal text tokens before or alongside audio tokens to ground semantics.",
+    "answer": "Request shed: {\"error\": {\"message\": \"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kscc7p5jf1evbn7xdybac1dy` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 8000, Requested 500. Please try again in 2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\", \"type\": \"tokens\", \"code\": \"rate_limit_exceeded\"}}",
+    "citations": [],
+    "auto_grade": "wrong",
+    "final_grade": "wrong",
+    "overruled": false,
+    "request_id": "eval_c_008_46c118"
+  },
+  {
+    "id": "q09_moshi_cost_unans",
+    "question": "What was the total training cost in US dollars to train the Moshi 7B model on GPU clusters?",
+    "paper": "Moshi",
+    "expect": "refuse",
+    "must_contain": [
+      "do not say",
+      "not stated",
+      "cannot"
+    ],
+    "ground_truth": "The paper does not state the US dollar training cost.",
+    "answer": "Request shed: {\"error\": {\"message\": \"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kscc7p5jf1evbn7xdybac1dy` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 8000, Requested 500. Please try again in 2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\", \"type\": \"tokens\", \"code\": \"rate_limit_exceeded\"}}",
+    "citations": [],
+    "auto_grade": "wrong",
+    "final_grade": "wrong",
+    "overruled": false,
+    "request_id": "eval_c_009_1277b0"
+  },
+  {
+    "id": "q10_attn_imagenet_unans",
+    "question": "What top-1 accuracy did the original Attention Is All You Need paper report on the ImageNet benchmark?",
+    "paper": "Attention",
+    "expect": "refuse",
+    "must_contain": [
+      "do not say",
+      "not evaluate",
+      "translation"
+    ],
+    "ground_truth": "The paper does not evaluate on ImageNet (it only evaluates machine translation and constituency parsing).",
+    "answer": "Request shed: {\"error\": {\"message\": \"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kscc7p5jf1evbn7xdybac1dy` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 7500, Requested 700. Please try again in 2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\", \"type\": \"tokens\", \"code\": \"rate_limit_exceeded\"}}",
+    "citations": [],
+    "auto_grade": "wrong",
+    "final_grade": "wrong",
+    "overruled": false,
+    "request_id": "eval_c_010_60f38e"
+  },
+  {
+    "id": "q11_dynchunk_battery_unans",
+    "question": "What is the measured battery life impact of running Dynamic Chunking on mobile edge smartphones?",
+    "paper": "DynChunk",
+    "expect": "refuse",
+    "must_contain": [
+      "do not say",
+      "not measured",
+      "mobile"
+    ],
+    "ground_truth": "The paper does not measure or report battery life impact on mobile phones.",
+    "answer": "The papers do not say.",
+    "citations": [],
+    "auto_grade": "refused_correctly",
+    "final_grade": "refused_correctly",
+    "overruled": false,
+    "request_id": "eval_c_011_53fb83"
+  },
+  {
+    "id": "q12_moshi_therapy_unans",
+    "question": "What prompt template was used to fine-tune Moshi on human psychological therapy dialogues?",
+    "paper": "Moshi",
+    "expect": "refuse",
+    "must_contain": [
+      "do not say",
+      "not fine-tune",
+      "therapy"
+    ],
+    "ground_truth": "Moshi was not fine-tuned on psychological therapy sessions.",
+    "answer": "The papers do not say.",
+    "citations": [],
+    "auto_grade": "refused_correctly",
+    "final_grade": "refused_correctly",
+    "overruled": false,
+    "request_id": "eval_c_012_0e4c7b"
+  },
+  {
+    "id": "q13_compare_positional",
+    "question": "Compare how the Transformer and Moshi handle positional information in sequence modeling.",
+    "paper": "Cross-paper",
+    "expect": "answer",
+    "must_contain": [
+      "sinusoidal",
+      "RoPE",
+      "rotary",
+      "positional"
+    ],
+    "ground_truth": "Attention uses sinusoidal or learned encodings; Moshi uses Rotary Position Embeddings (RoPE).",
+    "answer": "Refused: The answer could not be verified against the papers (Numeric figure '12.5' claimed in draft does not appear in retrieved evidence.).",
+    "citations": [],
+    "auto_grade": "refused_wrongly",
+    "final_grade": "refused_wrongly",
+    "overruled": false,
+    "request_id": "eval_c_013_d60bde"
+  },
+  {
+    "id": "q14_compare_complexity",
+    "question": "How do Attention Is All You Need and Dynamic Chunking approach the quadratic complexity of self-attention?",
+    "paper": "Cross-paper",
+    "expect": "answer",
+    "must_contain": [
+      "quadratic",
+      "chunk",
+      "O(n^2)",
+      "hierarchical"
+    ],
+    "ground_truth": "Attention notes O(n^2 * d) complexity; Dynamic Chunking compresses sequences hierarchically into chunks.",
+    "answer": "Dynamic Chunking (H-Net) uses router decision boundaries to segment sequences adaptively into variable-length chunks [DynChunk, \u00a7A.2, p. 34] while maintaining strict autoregressive causality [Attention, \u00a73.5, p. 7].",
+    "citations": [
+      "DynChunk, \u00a7A.2, p. 34",
+      "Attention, \u00a73.5, p. 7"
+    ],
+    "auto_grade": "wrong",
+    "final_grade": "wrong",
+    "overruled": false,
+    "request_id": "eval_c_014_7cd860"
+  },
+  {
+    "id": "q15_compare_tokenization",
+    "question": "Compare the tokenization strategies: byte-pair subwords in Transformers vs. acoustic RVQ in Moshi.",
+    "paper": "Cross-paper",
+    "expect": "answer",
+    "must_contain": [
+      "BPE",
+      "byte-pair",
+      "RVQ",
+      "vector quantization"
+    ],
+    "ground_truth": "Transformers use text subword BPE; Moshi uses hierarchical multi-codebook Residual Vector Quantization (RVQ).",
+    "answer": "Refused: The answer could not be verified against the papers (Numeric figure '12.5' claimed in draft does not appear in retrieved evidence.).",
+    "citations": [],
+    "auto_grade": "refused_wrongly",
+    "final_grade": "refused_wrongly",
+    "overruled": false,
+    "request_id": "eval_c_015_f8f3b7"
+  },
+  {
+    "id": "q16_distractor_bert",
+    "question": "How does the BERT masked language modeling objective differ from GPT-2 causal language modeling?",
+    "paper": "Off-topic",
+    "expect": "refuse",
+    "must_contain": [
+      "outside",
+      "off-topic",
+      "scope",
+      "papers do not say"
+    ],
+    "ground_truth": "Off-topic: Neither BERT nor GPT-2 is covered by the 3 indexed papers.",
+    "answer": "Refused: The answer could not be verified against the papers (Numeric figure '64' claimed in draft does not appear in retrieved evidence.).",
+    "citations": [],
+    "auto_grade": "refused_correctly",
+    "final_grade": "refused_correctly",
+    "overruled": false,
+    "request_id": "eval_c_016_92a5a7"
+  },
+  {
+    "id": "q17_distractor_claude",
+    "question": "What is the maximum context window of Claude 3.5 Sonnet in tokens?",
+    "paper": "Off-topic",
+    "expect": "refuse",
+    "must_contain": [
+      "outside",
+      "off-topic",
+      "scope",
+      "papers do not say"
+    ],
+    "ground_truth": "Off-topic: Outside the scope of the 3 indexed papers.",
+    "answer": "Refused: The answer could not be verified against the papers (Numeric figure '64' claimed in draft does not appear in retrieved evidence.).",
+    "citations": [],
+    "auto_grade": "refused_correctly",
+    "final_grade": "refused_correctly",
+    "overruled": false,
+    "request_id": "eval_c_017_0df528"
+  },
+  {
+    "id": "q18_distractor_quantum",
+    "question": "Explain quantum entanglement in superconducting qubit circuits.",
+    "paper": "Off-topic",
+    "expect": "refuse",
+    "must_contain": [
+      "outside",
+      "off-topic",
+      "scope",
+      "papers do not say"
+    ],
+    "ground_truth": "Off-topic: Unrelated physics subject.",
+    "answer": "Request shed: {\"error\": {\"message\": \"Rate limit reached for model `openai/gpt-oss-20b` in organization `org_01kscc7p5jf1evbn7xdybac1dy` service tier `on_demand` on tokens per minute (TPM): Limit 8000, Used 7700, Requested 700. Please try again in 2s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\", \"type\": \"tokens\", \"code\": \"rate_limit_exceeded\"}}",
+    "citations": [],
+    "auto_grade": "wrong",
+    "final_grade": "wrong",
+    "overruled": false,
+    "request_id": "eval_c_018_f1829a"
+  }
+]
